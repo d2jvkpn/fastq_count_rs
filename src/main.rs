@@ -12,8 +12,8 @@ fn main() {
             Arg::with_name("input")
                 .long("input")
                 .help("input fastq file")
+                .multiple(true)
                 .takes_value(true)
-                // .multiple(true)
                 .required(true),
         )
         .arg(
@@ -26,11 +26,19 @@ fn main() {
         )
         .get_matches();
 
-    let phred = args.value_of("phred").unwrap();
-    let phred = phred.parse::<u8>().unwrap();
-    let input = args.value_of("input").unwrap();
+    let phred = args.value_of("phred").unwrap().parse::<u8>().unwrap();
+    let inputs = args.values_of("input").unwrap();
 
-    let result = calculate(input, phred);
+    let mut result = FqResult::new();
+
+    for input in inputs {
+        let out = calculate(input, phred).unwrap_or_else(|error| {
+            panic!("{:?}", error);
+        });
+
+        result.add(out);
+    }
+
     println!("{:?}", result);
 }
 
@@ -39,9 +47,9 @@ struct FqResult {
     reads: u64, // reads number
     bases: u64, // bases number
     n: u64,     // base N number
+    gc: u64,    // base GC number
     q20: u64,   // Q20 number
     q30: u64,   // Q30 number
-    gc: u64,    // base GC number
 }
 
 impl FqResult {
@@ -55,18 +63,33 @@ impl FqResult {
             gc: 0,
         }
     }
+
+    fn add(&mut self, inst: FqResult) {
+        self.reads += inst.reads;
+        self.bases += inst.bases;
+        self.n += inst.n;
+        self.gc += inst.gc;
+        self.q20 += inst.q20;
+        self.q30 += inst.q30;
+    }
 }
 
-fn calculate(input: &str, phred: u8) -> FqResult {
-    let f = File::open(input).unwrap();
+fn calculate(input: &str, phred: u8) -> Result<FqResult, std::io::Error> {
+    let f = match File::open(input) {
+        Ok(file) => file,
+        Err(e) => return Err(e),
+    };
 
     // let reader = io::BufReader::new(f);
     let reader = io::BufReader::new(GzDecoder::new(io::BufReader::new(f)));
     let mut result = FqResult::new();
 
     for (num, line_) in reader.lines().enumerate() {
-        let line = line_.unwrap();
-        // println!("{}", num);
+        // let line = line_.unwrap();
+        let line = match line_ {
+            Ok(line) => line,
+            Err(e) => return Err(e),
+        };
 
         match num % 4 {
             0 => result.reads += 1,
@@ -101,5 +124,5 @@ fn calculate(input: &str, phred: u8) -> FqResult {
         }
     }
 
-    result
+    Ok(result)
 }
