@@ -1,6 +1,6 @@
 ### fastq_count_rs
 
-Implement fastq count (https://github.com/d2jvkpn/fastq_count) in Rust;
+Implement fastq count (https://github.com/d2jvkpn/fastq_count) in Rust.
 
 #### 1 build and run
 ```bash

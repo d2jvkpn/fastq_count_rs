@@ -7,7 +7,7 @@ use std::io::prelude::*;
 fn main() {
     let args = App::new("fastq count in rust")
         .version("0.1")
-        .about("fastq count  reads, bases, N Bases, Q20, Q30, GC")
+        .about("fastq count reads, bases, N Bases, Q20, Q30, GC")
         .arg(
             Arg::with_name("input")
                 .long("input")
