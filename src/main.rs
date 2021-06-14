@@ -5,31 +5,35 @@ use std::io;
 use std::io::prelude::*;
 
 fn main() {
+    //##
+    let input_arg = Arg::with_name("input")
+        .long("input")
+        .help("input fastq file")
+        .multiple(true)
+        .takes_value(true)
+        .required(true);
+
+    let phred_arg = Arg::with_name("phred")
+        .long("phred")
+        .help("input fastq file")
+        .takes_value(true)
+        .default_value("33")
+        .required(false);
+
     let args = App::new("fastq count in rust")
+        .author("d2jvkpn")
         .version("0.1")
         .about("fastq count reads, bases, N Bases, Q20, Q30, GC")
-        .arg(
-            Arg::with_name("input")
-                .long("input")
-                .help("input fastq file")
-                .multiple(true)
-                .takes_value(true)
-                .required(true),
-        )
-        .arg(
-            Arg::with_name("phred")
-                .long("phred")
-                .help("input fastq file")
-                .takes_value(true)
-                .default_value("33")
-                .required(false),
-        )
+        .set_term_width(100)
+        .arg(input_arg)
+        .arg(phred_arg)
         .get_matches();
 
     let phred = args.value_of("phred").unwrap().parse::<u8>().unwrap();
     let inputs = args.values_of("input").unwrap();
 
-    let mut result = FqResult::new();
+    //##
+    let mut result = FQCResult::new();
 
     for input in inputs {
         let out = calculate(input, phred).unwrap_or_else(|error| {
@@ -39,11 +43,12 @@ fn main() {
         result.add(out);
     }
 
+    //##
     println!("{:?}", result);
 }
 
 #[derive(Debug)]
-struct FqResult {
+struct FQCResult {
     reads: u64, // reads number
     bases: u64, // bases number
     n: u64,     // base N number
@@ -52,9 +57,9 @@ struct FqResult {
     q30: u64,   // Q30 number
 }
 
-impl FqResult {
-    fn new() -> FqResult {
-        FqResult {
+impl FQCResult {
+    fn new() -> FQCResult {
+        FQCResult {
             reads: 0,
             bases: 0,
             n: 0,
@@ -64,7 +69,7 @@ impl FqResult {
         }
     }
 
-    fn add(&mut self, inst: FqResult) {
+    fn add(&mut self, inst: FQCResult) {
         self.reads += inst.reads;
         self.bases += inst.bases;
         self.n += inst.n;
@@ -74,7 +79,7 @@ impl FqResult {
     }
 }
 
-fn calculate(input: &str, phred: u8) -> Result<FqResult, std::io::Error> {
+fn calculate(input: &str, phred: u8) -> Result<FQCResult, std::io::Error> {
     let f = match File::open(input) {
         Ok(file) => file,
         Err(e) => return Err(e),
@@ -82,7 +87,7 @@ fn calculate(input: &str, phred: u8) -> Result<FqResult, std::io::Error> {
 
     // let reader = io::BufReader::new(f);
     let reader = io::BufReader::new(GzDecoder::new(io::BufReader::new(f)));
-    let mut result = FqResult::new();
+    let mut result = FQCResult::new();
 
     for (num, line_) in reader.lines().enumerate() {
         // let line = line_.unwrap();
