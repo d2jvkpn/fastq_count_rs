@@ -40,6 +40,7 @@ fn main() {
     let mut fqc = FQCount::new(phred);
 
     for input in inputs {
+        println!(">>> fastq_count_rs reading \"{}\"", input);
         // let out = calculate(input, phred).unwrap_or_else(|err| { panic!("{:?}", err) });
         let out = match calculate(input, phred) {
             Ok(out) => out,
@@ -78,6 +79,7 @@ impl FQCount {
             q20: 0,
             q30: 0,
             gc: 0,
+
             phred: phred,
         }
     }
@@ -114,9 +116,7 @@ impl FQCount {
     fn print(self) {
         println!("{:?}", self);
     }
-}
 
-impl FQCount {
     fn add(&mut self, inst: FQCount) {
         self.reads += inst.reads;
         self.bases += inst.bases;
