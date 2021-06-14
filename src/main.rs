@@ -107,6 +107,12 @@ impl FQCount {
         }
     }
 
+    fn print(self) {
+        println!("{:?}", self);
+    }
+}
+
+impl FQCount {
     fn add(&mut self, inst: FQCount) {
         self.reads += inst.reads;
         self.bases += inst.bases;
@@ -114,10 +120,6 @@ impl FQCount {
         self.gc += inst.gc;
         self.q20 += inst.q20;
         self.q30 += inst.q30;
-    }
-
-    fn print(self) {
-        println!("{:?}", self);
     }
 }
 
