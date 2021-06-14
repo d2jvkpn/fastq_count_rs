@@ -1,8 +1,9 @@
-use clap::{App, Arg};
-use flate2::bufread::GzDecoder;
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
+
+use clap::{App, Arg};
+use flate2::bufread::GzDecoder;
 
 fn main() {
     //##
@@ -18,7 +19,7 @@ fn main() {
 
     let phred_arg = Arg::with_name("phred")
         .long("phred")
-        .help("input fastq file")
+        .help("phred value")
         .takes_value(true)
         .default_value("33")
         .required(false);
