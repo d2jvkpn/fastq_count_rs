@@ -33,43 +33,75 @@ fn main() {
     let inputs = args.values_of("input").unwrap();
 
     //##
-    let mut result = FQCResult::new();
+    let mut fqc = FQCount::new(phred);
 
     for input in inputs {
         let out = calculate(input, phred).unwrap_or_else(|error| {
             panic!("{:?}", error);
         });
 
-        result.add(out);
+        fqc.add(out);
     }
 
     //##
-    println!("{:?}", result);
+    println!("{:?}", fqc);
 }
 
 #[derive(Debug)]
-struct FQCResult {
+struct FQCount {
     reads: u64, // reads number
     bases: u64, // bases number
     n: u64,     // base N number
     gc: u64,    // base GC number
     q20: u64,   // Q20 number
     q30: u64,   // Q30 number
+
+    phred: u8,
 }
 
-impl FQCResult {
-    fn new() -> FQCResult {
-        FQCResult {
+impl FQCount {
+    fn new(phred: u8) -> FQCount {
+        FQCount {
             reads: 0,
             bases: 0,
             n: 0,
             q20: 0,
             q30: 0,
             gc: 0,
+            phred: phred,
         }
     }
 
-    fn add(&mut self, inst: FQCResult) {
+    fn countb(&mut self, line: &str) {
+        self.bases += line.len() as u64;
+        let upper_line = line.to_ascii_uppercase();
+
+        for v in upper_line.chars() {
+            if v == 'N' {
+                self.n += 1;
+            }
+            if v == 'G' || v == 'C' {
+                self.gc += 1;
+            }
+        }
+    }
+
+    fn countq(&mut self, line: &str) {
+        for v in line.as_bytes() {
+            let q = *v as u8 - self.phred;
+
+            if q < 20 {
+                continue;
+            }
+            self.q20 += 1;
+
+            if q >= 30 {
+                self.q30 += 1;
+            }
+        }
+    }
+
+    fn add(&mut self, inst: FQCount) {
         self.reads += inst.reads;
         self.bases += inst.bases;
         self.n += inst.n;
@@ -79,7 +111,7 @@ impl FQCResult {
     }
 }
 
-fn calculate(input: &str, phred: u8) -> Result<FQCResult, std::io::Error> {
+fn calculate(input: &str, phred: u8) -> Result<FQCount, std::io::Error> {
     let f = match File::open(input) {
         Ok(file) => file,
         Err(e) => return Err(e),
@@ -87,7 +119,7 @@ fn calculate(input: &str, phred: u8) -> Result<FQCResult, std::io::Error> {
 
     // let reader = io::BufReader::new(f);
     let reader = io::BufReader::new(GzDecoder::new(io::BufReader::new(f)));
-    let mut result = FQCResult::new();
+    let mut fqc = FQCount::new(phred);
 
     for (num, line_) in reader.lines().enumerate() {
         // let line = line_.unwrap();
@@ -97,37 +129,12 @@ fn calculate(input: &str, phred: u8) -> Result<FQCResult, std::io::Error> {
         };
 
         match num % 4 {
-            0 => result.reads += 1,
-            1 => {
-                result.bases += line.len() as u64;
-                let upper_line = line.to_ascii_uppercase();
-
-                for v in upper_line.chars() {
-                    if v == 'N' {
-                        result.n += 1;
-                    }
-                    if v == 'G' || v == 'C' {
-                        result.gc += 1;
-                    }
-                }
-            }
-            3 => {
-                for v in line.as_bytes() {
-                    let q = *v as u8 - phred;
-
-                    if q < 20 {
-                        continue;
-                    }
-                    result.q20 += 1;
-
-                    if q >= 30 {
-                        result.q30 += 1;
-                    }
-                }
-            }
+            0 => fqc.reads += 1,
+            1 => fqc.countb(&line),
+            3 => fqc.countq(&line),
             _ => {}
         }
     }
 
-    Ok(result)
+    Ok(fqc)
 }
