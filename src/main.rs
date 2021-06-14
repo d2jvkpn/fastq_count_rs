@@ -39,12 +39,12 @@ fn main() {
     let mut fqc = FQCount::new(phred);
 
     for input in inputs {
-        // out = calculate(input, phred).unwrap_or_else(|error| { panic!("{:?}", error) };
+        // let out = calculate(input, phred).unwrap_or_else(|err| { panic!("{:?}", err) });
         let out = match calculate(input, phred) {
             Ok(out) => out,
-            Err(e) => {
+            Err(err) => {
                 fqc.print();
-                println!("reading file {}: {:?}", input, e);
+                println!("reading file {}: {:?}", input, err);
                 std::process::exit(1);
             }
         };
