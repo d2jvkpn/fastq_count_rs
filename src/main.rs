@@ -6,6 +6,9 @@ use std::io::prelude::*;
 
 fn main() {
     //##
+    const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+    // https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-sets-for-crates
+
     let input_arg = Arg::with_name("input")
         .long("input")
         .help("input fastq file")
@@ -22,7 +25,7 @@ fn main() {
 
     let args = App::new("fastq count in rust")
         .author("d2jvkpn")
-        .version("0.1")
+        .version(VERSION)
         .about("fastq count reads, bases, N Bases, Q20, Q30, GC")
         .set_term_width(100)
         .arg(input_arg)
