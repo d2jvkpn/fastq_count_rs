@@ -36,15 +36,21 @@ fn main() {
     let mut fqc = FQCount::new(phred);
 
     for input in inputs {
-        let out = calculate(input, phred).unwrap_or_else(|error| {
-            panic!("{:?}", error);
-        });
+        // out = calculate(input, phred).unwrap_or_else(|error| { panic!("{:?}", error) };
+        let out = match calculate(input, phred) {
+            Ok(out) => out,
+            Err(e) => {
+                fqc.print();
+                println!("reading file {}: {:?}", input, e);
+                std::process::exit(1);
+            }
+        };
 
         fqc.add(out);
     }
 
     //##
-    println!("{:?}", fqc);
+    fqc.print();
 }
 
 #[derive(Debug)]
@@ -108,6 +114,10 @@ impl FQCount {
         self.gc += inst.gc;
         self.q20 += inst.q20;
         self.q30 += inst.q30;
+    }
+
+    fn print(self) {
+        println!("{:?}", self);
     }
 }
 
