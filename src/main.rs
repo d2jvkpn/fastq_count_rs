@@ -61,12 +61,13 @@ fn main() {
 
 #[derive(Debug)]
 struct FQCount {
-    reads: u64,   // reads number
-    bases: u64,   // bases number
-    n: u64,       // base N number
-    gc: u64,      // base GC number
-    q20: u64,     // Q20 number
-    q30: u64,     // Q30 number
+    reads: u64, // reads number
+    bases: u64, // bases number
+    n: u64,     // base N number
+    gc: u64,    // base GC number
+    q20: u64,   // Q20 number
+    q30: u64,   // Q30 number
+
     phred: u8,    // phred value
     q20perc: f64, // Q20 number percentage
     q30perc: f64, // Q30 number percentage
@@ -81,7 +82,6 @@ impl FQCount {
             q20: 0,
             q30: 0,
             gc: 0,
-
             phred: phred,
             q20perc: 0.0,
             q30perc: 0.0,
