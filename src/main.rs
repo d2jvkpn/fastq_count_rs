@@ -69,6 +69,8 @@ struct FQCount {
     q30: u64,   // Q30 number
 
     phred: u8,
+    q20perc: f64, // Q20 number percentage
+    q30perc: f64, // Q30 number percentage
 }
 
 impl FQCount {
@@ -82,6 +84,8 @@ impl FQCount {
             gc: 0,
 
             phred: phred,
+            q20perc: 0.0,
+            q30perc: 0.0,
         }
     }
 
@@ -114,7 +118,17 @@ impl FQCount {
         }
     }
 
-    fn print(self) {
+    fn percs(&mut self) {
+        if self.bases == 0 {
+            return;
+        }
+
+        self.q20perc = (self.q20 as f64 * 100.0) / (self.bases as f64);
+        self.q30perc = (self.q30 as f64 * 100.0) / (self.bases as f64);
+    }
+
+    fn print(&mut self) {
+        self.percs();
         println!("{:?}", self);
     }
 
