@@ -5,12 +5,12 @@ use std::io::prelude::*;
 use clap::{App, Arg};
 use flate2::bufread::GzDecoder;
 
+// https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-sets-for-crates
+const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+const AUTHORS: &'static str = env!("CARGO_PKG_AUTHORS");
+
 fn main() {
     //##
-    const VERSION: &'static str = env!("CARGO_PKG_VERSION");
-    const AUTHORS: &'static str = env!("CARGO_PKG_AUTHORS");
-    // https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-sets-for-crates
-
     let input_arg = Arg::with_name("input")
         .long("input")
         .help("input fastq file")
