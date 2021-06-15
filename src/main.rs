@@ -8,6 +8,7 @@ use flate2::bufread::GzDecoder;
 fn main() {
     //##
     const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+    const AUTHORS: &'static str = env!("CARGO_PKG_AUTHORS");
     // https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-sets-for-crates
 
     let input_arg = Arg::with_name("input")
@@ -25,7 +26,7 @@ fn main() {
         .required(false);
 
     let args = App::new("fastq count in rust")
-        .author("d2jvkpn")
+        .author(AUTHORS)
         .version(VERSION)
         .about("fastq count reads, bases, N Bases, Q20, Q30, GC")
         .set_term_width(100)
