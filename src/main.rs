@@ -47,7 +47,7 @@ fn main() {
             Ok(out) => out,
             Err(err) => {
                 fqc.print();
-                println!("reading file {}: {:?}", input, err);
+                println!("!!! reading file {}: {:?}", input, err);
                 std::process::exit(1);
             }
         };
@@ -61,14 +61,13 @@ fn main() {
 
 #[derive(Debug)]
 struct FQCount {
-    reads: u64, // reads number
-    bases: u64, // bases number
-    n: u64,     // base N number
-    gc: u64,    // base GC number
-    q20: u64,   // Q20 number
-    q30: u64,   // Q30 number
-
-    phred: u8,
+    reads: u64,   // reads number
+    bases: u64,   // bases number
+    n: u64,       // base N number
+    gc: u64,      // base GC number
+    q20: u64,     // Q20 number
+    q30: u64,     // Q30 number
+    phred: u8,    // phred value
     q20perc: f64, // Q20 number percentage
     q30perc: f64, // Q30 number percentage
 }
