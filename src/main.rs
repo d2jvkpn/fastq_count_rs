@@ -141,7 +141,7 @@ impl FQCount {
 
 fn calculate(input: &str, phred: u8) -> Result<FQCount, std::io::Error> {
     let f = match File::open(input) {
-        Ok(file) => file,
+        Ok(f) => f,
         Err(e) => return Err(e),
     };
 
@@ -149,9 +149,9 @@ fn calculate(input: &str, phred: u8) -> Result<FQCount, std::io::Error> {
     let reader = io::BufReader::new(GzDecoder::new(io::BufReader::new(f)));
     let mut fqc = FQCount::new(phred);
 
-    for (num, line_) in reader.lines().enumerate() {
-        // let line = line_.unwrap();
-        let line = match line_ {
+    for (num, line) in reader.lines().enumerate() {
+        // let line = line.unwrap();
+        let line = match line {
             Ok(line) => line,
             Err(e) => return Err(e),
         };
