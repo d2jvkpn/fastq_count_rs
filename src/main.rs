@@ -90,14 +90,12 @@ impl FQCount {
 
     fn countb(&mut self, line: &str) {
         self.bases += line.len() as u64;
-        let upper_line = line.to_ascii_uppercase();
 
-        for v in upper_line.chars() {
-            if v == 'N' {
-                self.n += 1;
-            }
+        for v in line.to_ascii_uppercase().chars() {
             if v == 'G' || v == 'C' {
                 self.gc += 1;
+            } else if v == 'N' {
+                self.n += 1;
             }
         }
     }
