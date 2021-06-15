@@ -122,8 +122,8 @@ impl FQCount {
             return;
         }
 
-        self.q20perc = (self.q20 as f64 * 100.0) / (self.bases as f64);
-        self.q30perc = (self.q30 as f64 * 100.0) / (self.bases as f64);
+        self.q20perc = (self.q20 * 1000 / self.bases) as f64 / 1000.0;
+        self.q30perc = (self.q30 * 1000 / self.bases) as f64 / 1000.0;
     }
 
     fn print(&mut self) {
