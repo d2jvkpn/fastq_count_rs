@@ -101,6 +101,7 @@ impl FQCount {
 
 impl FQCount {
     fn countb(&mut self, line: &str) {
+        self.reads += 1;
         self.bases += line.len() as u64;
 
         for v in line.to_ascii_uppercase().chars() {
@@ -135,7 +136,6 @@ impl FQCount {
             };
 
             match num % 4 {
-                0 => self.reads += 1,
                 1 => self.countb(&line),
                 3 => self.countq(&line),
                 _ => {}
