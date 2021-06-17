@@ -165,16 +165,16 @@ fn calculate(input: &str, fqc: &mut FQCount) -> Option<std::io::Error> {
         return None;
     }
 
-    let f = match File::open(input) {
+    let file = match File::open(input) {
         Ok(f) => f,
         Err(e) => return Some(e),
     };
 
     if input.ends_with(".gz") {
-        let reader = io::BufReader::new(GzDecoder::new(io::BufReader::new(f)));
+        let reader = io::BufReader::new(GzDecoder::new(io::BufReader::new(file)));
         fqc.read(reader)?;
     } else {
-        let reader = io::BufReader::new(f);
+        let reader = io::BufReader::new(file);
         fqc.read(reader)?;
     }
 
