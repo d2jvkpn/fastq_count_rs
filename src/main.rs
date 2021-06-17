@@ -13,7 +13,7 @@ fn main() {
     //##
     let input_arg = Arg::with_name("input")
         .long("input")
-        .help("input fastq file")
+        .help("input fastq or gzipped fastq file")
         .multiple(true)
         .takes_value(true)
         .required(true);
@@ -41,10 +41,16 @@ fn main() {
     let mut fqc = FQCount::new(phred);
 
     for input in inputs {
-        println!(">>> fastq_count_rs reading \"{}\"", input);
+        println!(">>> reading \"{}\"", input);
         // let out = calculate(input, phred).unwrap_or_else(|err| { panic!("{:?}", err) });
-        let out = match calculate(input, phred) {
-            Ok(out) => out,
+        let result = if input.ends_with(".gz") {
+            calculate_gz(input, phred)
+        } else {
+            calculate(input, phred)
+        };
+
+        match result {
+            Ok(out) => fqc.add(out),
             Err(err) => {
                 fqc.print();
                 println!("!!! reading file {}: {:?}", input, err);
@@ -52,7 +58,7 @@ fn main() {
             }
         };
 
-        fqc.add(out);
+        // calculate_gz2(input, &mut fqc);
     }
 
     //##
@@ -139,13 +145,13 @@ impl FQCount {
     }
 }
 
-fn calculate(input: &str, phred: u8) -> Result<FQCount, std::io::Error> {
+//?? combine calculate_gz with calculate
+fn calculate_gz(input: &str, phred: u8) -> Result<FQCount, std::io::Error> {
     let f = match File::open(input) {
         Ok(f) => f,
         Err(e) => return Err(e),
     };
 
-    // let reader = io::BufReader::new(f);
     let reader = io::BufReader::new(GzDecoder::new(io::BufReader::new(f)));
     let mut fqc = FQCount::new(phred);
 
@@ -165,4 +171,57 @@ fn calculate(input: &str, phred: u8) -> Result<FQCount, std::io::Error> {
     }
 
     Ok(fqc)
+}
+
+fn calculate(input: &str, phred: u8) -> Result<FQCount, std::io::Error> {
+    let f = match File::open(input) {
+        Ok(f) => f,
+        Err(e) => return Err(e),
+    };
+
+    let reader = io::BufReader::new(f);
+    let mut fqc = FQCount::new(phred);
+
+    for (num, line) in reader.lines().enumerate() {
+        // let line = line.unwrap();
+        let line = match line {
+            Ok(line) => line,
+            Err(e) => return Err(e),
+        };
+
+        match num % 4 {
+            0 => fqc.reads += 1,
+            1 => fqc.countb(&line),
+            3 => fqc.countq(&line),
+            _ => {}
+        }
+    }
+
+    Ok(fqc)
+}
+
+fn calculate_gz2(input: &str, fqc: &mut FQCount) -> Option<std::io::Error> {
+    let f = match File::open(input) {
+        Ok(f) => f,
+        Err(e) => return Some(e),
+    };
+
+    let reader = io::BufReader::new(GzDecoder::new(io::BufReader::new(f)));
+
+    for (num, line) in reader.lines().enumerate() {
+        // let line = line.unwrap();
+        let line = match line {
+            Ok(line) => line,
+            Err(e) => return Some(e),
+        };
+
+        match num % 4 {
+            0 => fqc.reads += 1,
+            1 => fqc.countb(&line),
+            3 => fqc.countq(&line),
+            _ => {}
+        }
+    }
+
+    None
 }
