@@ -13,7 +13,7 @@ fn main() {
     //##
     let input_arg = Arg::with_name("input")
         .long("input")
-        .help("input fastq or gzipped fastq file")
+        .help("input fastq, gzipped fastq or stdin(-)")
         .multiple(true)
         .takes_value(true)
         .required(true);
@@ -41,24 +41,14 @@ fn main() {
     let mut fqc = FQCount::new(phred);
 
     for input in inputs {
-        println!(">>> reading \"{}\"", input);
-        // let out = calculate(input, phred).unwrap_or_else(|err| { panic!("{:?}", err) });
-        let result = if input.ends_with(".gz") {
-            calculate_gz(input, phred)
-        } else {
-            calculate(input, phred)
-        };
-
-        match result {
-            Ok(out) => fqc.add(out),
-            Err(err) => {
+        match calculate(input, &mut fqc) {
+            Some(err) => {
                 fqc.print();
                 println!("!!! reading file {}: {:?}", input, err);
                 std::process::exit(1);
             }
+            None => {}
         };
-
-        // calculate_gz2(input, &mut fqc);
     }
 
     //##
@@ -94,6 +84,22 @@ impl FQCount {
         }
     }
 
+    fn percs(&mut self) {
+        if self.bases == 0 {
+            return;
+        }
+
+        self.q20perc = (self.q20 * 1000 / self.bases) as f64 / 1000.0;
+        self.q30perc = (self.q30 * 1000 / self.bases) as f64 / 1000.0;
+    }
+
+    fn print(&mut self) {
+        self.percs();
+        println!("{:?}", self);
+    }
+}
+
+impl FQCount {
     fn countb(&mut self, line: &str) {
         self.bases += line.len() as u64;
 
@@ -121,18 +127,22 @@ impl FQCount {
         }
     }
 
-    fn percs(&mut self) {
-        if self.bases == 0 {
-            return;
+    fn read<R: BufRead>(&mut self, reader: R) -> Option<std::io::Error> {
+        for (num, line) in reader.lines().enumerate() {
+            let line = match line {
+                Ok(line) => line,
+                Err(err) => return Some(err),
+            };
+
+            match num % 4 {
+                0 => self.reads += 1,
+                1 => self.countb(&line),
+                3 => self.countq(&line),
+                _ => {}
+            }
         }
 
-        self.q20perc = (self.q20 * 1000 / self.bases) as f64 / 1000.0;
-        self.q30perc = (self.q30 * 1000 / self.bases) as f64 / 1000.0;
-    }
-
-    fn print(&mut self) {
-        self.percs();
-        println!("{:?}", self);
+        return None;
     }
 
     fn add(&mut self, inst: FQCount) {
@@ -145,83 +155,28 @@ impl FQCount {
     }
 }
 
-//?? combine calculate_gz with calculate
-fn calculate_gz(input: &str, phred: u8) -> Result<FQCount, std::io::Error> {
-    let f = match File::open(input) {
-        Ok(f) => f,
-        Err(e) => return Err(e),
-    };
+fn calculate(input: &str, fqc: &mut FQCount) -> Option<std::io::Error> {
+    println!(">>> fastq count reading \"{}\"", input);
 
-    let reader = io::BufReader::new(GzDecoder::new(io::BufReader::new(f)));
-    let mut fqc = FQCount::new(phred);
-
-    for (num, line) in reader.lines().enumerate() {
-        // let line = line.unwrap();
-        let line = match line {
-            Ok(line) => line,
-            Err(e) => return Err(e),
-        };
-
-        match num % 4 {
-            0 => fqc.reads += 1,
-            1 => fqc.countb(&line),
-            3 => fqc.countq(&line),
-            _ => {}
-        }
+    if input == "-" {
+        let stdin = io::stdin();
+        let handle = stdin.lock();
+        fqc.read(handle)?;
+        return None;
     }
 
-    Ok(fqc)
-}
-
-fn calculate(input: &str, phred: u8) -> Result<FQCount, std::io::Error> {
-    let f = match File::open(input) {
-        Ok(f) => f,
-        Err(e) => return Err(e),
-    };
-
-    let reader = io::BufReader::new(f);
-    let mut fqc = FQCount::new(phred);
-
-    for (num, line) in reader.lines().enumerate() {
-        // let line = line.unwrap();
-        let line = match line {
-            Ok(line) => line,
-            Err(e) => return Err(e),
-        };
-
-        match num % 4 {
-            0 => fqc.reads += 1,
-            1 => fqc.countb(&line),
-            3 => fqc.countq(&line),
-            _ => {}
-        }
-    }
-
-    Ok(fqc)
-}
-
-fn calculate_gz2(input: &str, fqc: &mut FQCount) -> Option<std::io::Error> {
     let f = match File::open(input) {
         Ok(f) => f,
         Err(e) => return Some(e),
     };
 
-    let reader = io::BufReader::new(GzDecoder::new(io::BufReader::new(f)));
-
-    for (num, line) in reader.lines().enumerate() {
-        // let line = line.unwrap();
-        let line = match line {
-            Ok(line) => line,
-            Err(e) => return Some(e),
-        };
-
-        match num % 4 {
-            0 => fqc.reads += 1,
-            1 => fqc.countb(&line),
-            3 => fqc.countq(&line),
-            _ => {}
-        }
+    if input.ends_with(".gz") {
+        let reader = io::BufReader::new(GzDecoder::new(io::BufReader::new(f)));
+        fqc.read(reader)?;
+    } else {
+        let reader = io::BufReader::new(f);
+        fqc.read(reader)?;
     }
 
-    None
+    return None;
 }
