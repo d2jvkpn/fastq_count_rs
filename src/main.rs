@@ -28,7 +28,7 @@ fn main() {
     let args = App::new("fastq count in rust")
         .author(AUTHORS)
         .version(VERSION)
-        .about("fastq count reads, bases, N Bases, Q20, Q30, GC")
+        .about("count fastq(https://en.wikipedia.org/wiki/FASTQ_format) reads, bases, N Bases, Q20, Q30, GC")
         .set_term_width(100)
         .arg(input_arg)
         .arg(phred_arg)
