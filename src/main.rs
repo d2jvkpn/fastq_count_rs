@@ -2,6 +2,9 @@ use std::fs::File;
 use std::io;
 use std::io::prelude::*;
 
+#[macro_use]
+extern crate serde_derive;
+
 use clap::{App, Arg};
 use flate2::bufread::GzDecoder;
 
@@ -25,17 +28,34 @@ fn main() {
         .default_value("33")
         .required(false);
 
-    let args = App::new("fastq count in rust")
+    let json_format_arg = Arg::with_name("json_format")
+        .long("json_format")
+        .required(false)
+        .takes_value(false)
+        .help("output json format");
+
+    let output_arg = Arg::with_name("output")
+        .long("output")
+        .required(false)
+        .takes_value(true)
+        .default_value("")
+        .help("output to file");
+
+    let args = App::new("fastq(https://en.wikipedia.org/wiki/FASTQ_format) count in rust")
         .author(AUTHORS)
         .version(VERSION)
-        .about("count fastq(https://en.wikipedia.org/wiki/FASTQ_format) reads, bases, N Bases, Q20, Q30, GC")
+        .about("count fastq reads, bases, N Bases, Q20, Q30, GC")
         .set_term_width(100)
         .arg(input_arg)
         .arg(phred_arg)
+        .arg(json_format_arg)
+        .arg(output_arg)
         .get_matches();
 
     let phred = args.value_of("phred").unwrap().parse::<u8>().unwrap();
     let inputs = args.values_of("input").unwrap();
+    let json_format = args.is_present("json_format");
+    let output = args.value_of("output").unwrap_or("");
 
     //##
     let mut fqc = FQCount::new(phred);
@@ -43,8 +63,8 @@ fn main() {
     for input in inputs {
         match calculate(input, &mut fqc) {
             Some(err) => {
-                fqc.print();
-                println!("!!! reading file {}: {:?}", input, err);
+                println!("{}", fqc.text());
+                eprintln!("!!! reading file {}: {:?}", input, err);
                 std::process::exit(1);
             }
             None => {}
@@ -52,11 +72,20 @@ fn main() {
     }
 
     //##
-    fqc.print();
+    let result = if json_format { fqc.json() } else { fqc.text() };
+    if output == "" {
+        println!("{}", result);
+    } else {
+        let mut file = File::create(output).unwrap();
+        writeln!(file, "{}", result).unwrap();
+    }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct FQCount {
+    phred: u8, // phred value
+
     reads: u64, // reads number
     bases: u64, // bases number
     n: u64,     // base N number
@@ -64,23 +93,32 @@ struct FQCount {
     q20: u64,   // Q20 number
     q30: u64,   // Q30 number
 
-    phred: u8,    // phred value
-    q20perc: f64, // Q20 number percentage
-    q30perc: f64, // Q30 number percentage
+    reads_mb: f64,
+    bases_gb: f64,
+    n_perc: f64,
+    gc_perc: f64,  // GC percentage
+    q20_perc: f64, // Q20 percentage
+    q30_perc: f64, // Q30 percentage
 }
 
 impl FQCount {
     fn new(phred: u8) -> FQCount {
         FQCount {
+            phred: phred,
+
             reads: 0,
             bases: 0,
             n: 0,
+            gc: 0,
             q20: 0,
             q30: 0,
-            gc: 0,
-            phred: phred,
-            q20perc: 0.0,
-            q30perc: 0.0,
+
+            reads_mb: 0.0,
+            bases_gb: 0.0,
+            n_perc: 0.0,
+            gc_perc: 0.0,
+            q20_perc: 0.0,
+            q30_perc: 0.0,
         }
     }
 
@@ -89,13 +127,38 @@ impl FQCount {
             return;
         }
 
-        self.q20perc = (self.q20 * 1000 / self.bases) as f64 / 1000.0;
-        self.q30perc = (self.q30 * 1000 / self.bases) as f64 / 1000.0;
+        self.reads_mb = self.reads as f64 / 1e6;
+        self.bases_gb = self.bases as f64 / 1e9;
+        self.n_perc = (self.n * 100_000 / self.bases) as f64 / 1e3;
+        self.gc_perc = (self.gc * 100_000 / self.bases) as f64 / 1e3;
+        self.q20_perc = (self.q20 * 100_000 / self.bases) as f64 / 1e3;
+        self.q30_perc = (self.q30 * 100_000 / self.bases) as f64 / 1e3;
     }
 
-    fn print(&mut self) {
+    fn text(&mut self) -> String {
         self.percs();
-        println!("{:?}", self);
+        format!(
+            "Reads\tBases\tN-bases\tGC\tQ20\tQ30
+{:.2}MB\t{:.2}GB\t{:.2}%\t{:.2}%\t{:.2}%\t{:.2}%
+{}\t{}\t{}\t{}\t{}\t{}",
+            self.reads_mb,
+            self.bases_gb,
+            self.n_perc,
+            self.gc_perc,
+            self.q20_perc,
+            self.q30_perc,
+            self.reads,
+            self.bases,
+            self.n,
+            self.gc,
+            self.q20,
+            self.q30,
+        )
+    }
+
+    fn json(&mut self) -> String {
+        self.percs();
+        serde_json::to_string(&self).unwrap_or(String::from(""))
     }
 }
 
@@ -156,7 +219,7 @@ impl FQCount {
 }
 
 fn calculate(input: &str, fqc: &mut FQCount) -> Option<std::io::Error> {
-    println!(">>> fastq count reading \"{}\"", input);
+    eprintln!(">>> fastq count reading \"{}\"", input);
 
     if input == "-" {
         let stdin = io::stdin();
