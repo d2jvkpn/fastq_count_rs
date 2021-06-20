@@ -55,7 +55,7 @@ fn main() {
     let phred = args.value_of("phred").unwrap().parse::<u8>().unwrap();
     let inputs = args.values_of("input").unwrap();
     let json_format = args.is_present("json_format");
-    let output = args.value_of("output").unwrap_or("");
+    let output = args.value_of("output").unwrap();
 
     //##
     let mut fqc = FQCount::new(phred);
