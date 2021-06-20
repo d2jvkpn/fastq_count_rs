@@ -1,6 +1,6 @@
 use std::fs::File;
-use std::io;
 use std::io::prelude::*;
+use std::{io, process};
 
 #[macro_use]
 extern crate serde_derive;
@@ -65,7 +65,7 @@ fn main() {
             Some(err) => {
                 println!("{}", fqc.text());
                 eprintln!("!!! reading file {}: {:?}", input, err);
-                std::process::exit(1);
+                process::exit(1);
             }
             None => {}
         };
@@ -191,7 +191,7 @@ impl FQCount {
         }
     }
 
-    fn read<R: BufRead>(&mut self, reader: R) -> Option<std::io::Error> {
+    fn read<R: BufRead>(&mut self, reader: R) -> Option<io::Error> {
         for (num, line) in reader.lines().enumerate() {
             let line = match line {
                 Ok(line) => line,
@@ -218,7 +218,7 @@ impl FQCount {
     }
 }
 
-fn calculate(input: &str, fqc: &mut FQCount) -> Option<std::io::Error> {
+fn calculate(input: &str, fqc: &mut FQCount) -> Option<io::Error> {
     eprintln!(">>> fastq count reading \"{}\"", input);
 
     if input == "-" {
