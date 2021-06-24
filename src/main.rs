@@ -75,10 +75,11 @@ fn main() {
     let result = if json_format { fqc.json() } else { fqc.text() };
     if output == "" {
         println!("{}", result);
-    } else {
-        let mut file = File::create(output).unwrap();
-        writeln!(file, "{}", result).unwrap();
+        return;
     }
+
+    let mut file = File::create(output).unwrap();
+    writeln!(file, "{}", result).unwrap();
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -133,6 +134,15 @@ impl FQCount {
         self.gc_perc = (self.gc * 100_000 / self.bases) as f64 / 1e3;
         self.q20_perc = (self.q20 * 100_000 / self.bases) as f64 / 1e3;
         self.q30_perc = (self.q30 * 100_000 / self.bases) as f64 / 1e3;
+    }
+
+    fn add(&mut self, inst: FQCount) {
+        self.reads += inst.reads;
+        self.bases += inst.bases;
+        self.n += inst.n;
+        self.gc += inst.gc;
+        self.q20 += inst.q20;
+        self.q30 += inst.q30;
     }
 
     fn text(&mut self) -> String {
@@ -206,15 +216,6 @@ impl FQCount {
         }
 
         return None;
-    }
-
-    fn add(&mut self, inst: FQCount) {
-        self.reads += inst.reads;
-        self.bases += inst.bases;
-        self.n += inst.n;
-        self.gc += inst.gc;
-        self.q20 += inst.q20;
-        self.q30 += inst.q30;
     }
 }
 
