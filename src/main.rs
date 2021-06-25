@@ -220,6 +220,7 @@ impl FQCount {
 }
 
 fn calculate(input: &str, fqc: &mut FQCount) -> Option<io::Error> {
+    // Option<Box<dyn std::error::Error>>
     eprintln!(">>> fastq count reading \"{}\"", input);
 
     if input == "-" {
@@ -231,7 +232,7 @@ fn calculate(input: &str, fqc: &mut FQCount) -> Option<io::Error> {
 
     let file = match File::open(input) {
         Ok(f) => f,
-        Err(e) => return Some(e),
+        Err(e) => return Some(e), // Some(Box::new(e))
     };
 
     if input.ends_with(".gz") {
