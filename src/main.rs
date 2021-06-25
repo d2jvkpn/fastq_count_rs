@@ -1,6 +1,5 @@
-use std::fs::File;
 use std::io::prelude::*;
-use std::{io, process};
+use std::{error, fs, io, process, sync, thread};
 
 #[macro_use]
 extern crate serde_derive;
@@ -61,11 +60,9 @@ fn main() {
     let mut fqc = FQCount::new(phred);
 
     for input in inputs {
-        match calculate(input, &mut fqc) {
-            Some(err) => {
-                println!("{}", fqc.text());
-                eprintln!("!!! reading file {}: {:?}", input, err);
-                process::exit(1);
+        match calculate2(input, phred) {
+            Some(out) => {
+                fqc.add(out);
             }
             None => {}
         };
@@ -78,7 +75,7 @@ fn main() {
         return;
     }
 
-    let mut file = File::create(output).unwrap();
+    let mut file = fs::File::create(output).unwrap();
     writeln!(file, "{}", result).unwrap();
 }
 
@@ -102,6 +99,7 @@ struct FQCount {
     q30_perc: f64, // Q30 percentage
 }
 
+// basic
 impl FQCount {
     fn new(phred: u8) -> FQCount {
         FQCount {
@@ -172,6 +170,7 @@ impl FQCount {
     }
 }
 
+// classic way
 impl FQCount {
     fn countb(&mut self, line: &str) {
         self.reads += 1;
@@ -230,7 +229,7 @@ fn calculate(input: &str, fqc: &mut FQCount) -> Option<io::Error> {
         return None;
     }
 
-    let file = match File::open(input) {
+    let file = match fs::File::open(input) {
         Ok(f) => f,
         Err(e) => return Some(e), // Some(Box::new(e))
     };
@@ -244,4 +243,104 @@ fn calculate(input: &str, fqc: &mut FQCount) -> Option<io::Error> {
     }
 
     return None;
+}
+
+// multithreading with channels
+impl FQCount {
+    fn countb2(&mut self, line: String) {
+        self.reads += 1;
+        self.bases += line.len() as u64;
+
+        for v in line.to_ascii_uppercase().chars() {
+            if v == 'G' || v == 'C' {
+                self.gc += 1;
+            } else if v == 'N' {
+                self.n += 1;
+            }
+        }
+    }
+
+    fn countq2(&mut self, line: String) {
+        for v in line.as_bytes() {
+            let q = *v as u8 - self.phred;
+
+            if q < 20 {
+                continue;
+            }
+            self.q20 += 1;
+
+            if q >= 30 {
+                self.q30 += 1;
+            }
+        }
+    }
+
+    fn from_reader<R: BufRead>(reader: R, phred: u8) -> Option<FQCount> {
+        let (tx1, rx1) = sync::mpsc::channel();
+        let (tx2, rx2) = sync::mpsc::channel();
+
+        let th1 = thread::spawn(move || {
+            let mut fqc = FQCount::new(phred);
+            for line in rx1 {
+                fqc.countb2(line);
+            }
+            fqc
+        });
+
+        let th2 = thread::spawn(move || {
+            let mut fqc = FQCount::new(phred);
+            for line in rx2 {
+                fqc.countq2(line);
+            }
+            fqc
+        });
+
+        for (num, line) in reader.lines().enumerate() {
+            let line = match line {
+                Ok(line) => line,
+                Err(err) => return None,
+            };
+
+            match num % 4 {
+                1 => tx1.send(line).expect("Unable to send on channel"),
+                3 => tx2.send(line).expect("Unable to send on channel"),
+                _ => continue,
+            }
+        }
+        drop(tx1);
+        drop(tx2);
+
+        let mut fqc = th1.join().unwrap();
+        let fqc2 = th2.join().unwrap();
+        fqc.add(fqc2);
+
+        return Some(fqc);
+    }
+}
+
+fn calculate2(input: &str, phred: u8) -> Option<FQCount> {
+    // Option<Box<dyn std::error::Error>>, Some(Box::new(e))
+    eprintln!(">>> fastq count reading \"{}\"", input);
+
+    if input == "-" {
+        let stdin = io::stdin();
+        let handle = stdin.lock();
+        let fqc = FQCount::from_reader(handle, phred)?;
+        return Some(fqc);
+    }
+
+    let file = match fs::File::open(input) {
+        Ok(f) => f,
+        Err(e) => return None,
+    };
+
+    if input.ends_with(".gz") {
+        let reader = io::BufReader::new(GzDecoder::new(io::BufReader::new(file)));
+        let fqc = FQCount::from_reader(reader, phred)?;
+        return Some(fqc);
+    }
+
+    let reader = io::BufReader::new(file);
+    let fqc = FQCount::from_reader(reader, phred)?;
+    return Some(fqc);
 }
