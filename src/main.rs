@@ -172,6 +172,7 @@ impl FQCount {
 
 // classic way
 impl FQCount {
+    #[allow(dead_code)]
     fn countb(&mut self, line: &str) {
         self.reads += 1;
         self.bases += line.len() as u64;
@@ -185,6 +186,7 @@ impl FQCount {
         }
     }
 
+    #[allow(dead_code)]
     fn countq(&mut self, line: &str) {
         for v in line.as_bytes() {
             let q = *v as u8 - self.phred;
@@ -200,6 +202,7 @@ impl FQCount {
         }
     }
 
+    #[allow(dead_code)]
     fn read<R: BufRead>(&mut self, reader: R) -> Option<io::Error> {
         for (num, line) in reader.lines().enumerate() {
             let line = match line {
@@ -218,6 +221,7 @@ impl FQCount {
     }
 }
 
+#[allow(dead_code)]
 fn calculate(input: &str, fqc: &mut FQCount) -> Option<io::Error> {
     // Option<Box<dyn std::error::Error>>
     eprintln!(">>> fastq count reading \"{}\"", input);
