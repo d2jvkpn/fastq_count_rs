@@ -1,6 +1,6 @@
 [package]
 name = "fastq_count_rs"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["d2jvkpn"]
 edition = "2018"
 
