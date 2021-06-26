@@ -15,35 +15,35 @@ fn main() {
     //##
     let input_arg = Arg::with_name("input")
         .long("input")
-        .help("input fastq, gzipped fastq or stdin(-)")
-        .multiple(true)
         .takes_value(true)
-        .required(true);
+        .required(true)
+        .multiple(true)
+        .help("input fastq, gzipped fastq or stdin(-)");
 
     let phred_arg = Arg::with_name("phred")
         .long("phred")
-        .help("phred value")
         .takes_value(true)
+        .required(false)
         .default_value("33")
-        .required(false);
+        .help("phred value");
 
     let json_format_arg = Arg::with_name("json_format")
         .long("json_format")
-        .required(false)
         .takes_value(false)
+        .required(false)
         .help("output json format");
 
     let output_arg = Arg::with_name("output")
         .long("output")
-        .required(false)
         .takes_value(true)
+        .required(false)
         .default_value("")
         .help("output to file");
 
     let args = App::new("fastq(https://en.wikipedia.org/wiki/FASTQ_format) count in rust")
+        .about("count fastq reads, bases, N Bases, Q20, Q30, GC")
         .author(AUTHORS)
         .version(VERSION)
-        .about("count fastq reads, bases, N Bases, Q20, Q30, GC")
         .set_term_width(100)
         .arg(input_arg)
         .arg(phred_arg)
