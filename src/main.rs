@@ -259,10 +259,10 @@ impl FQCount {
         self.bases += line.len() as u64;
 
         for v in line.to_ascii_uppercase().chars() {
-            if v == 'G' || v == 'C' {
-                self.gc += 1;
-            } else if v == 'N' {
-                self.n += 1;
+            match v {
+                'G' | 'C' => self.gc += 1,
+                'N' => self.n += 1,
+                _ => {}
             }
         }
     }
@@ -275,7 +275,6 @@ impl FQCount {
                 continue;
             }
             self.q20 += 1;
-
             if q >= 30 {
                 self.q30 += 1;
             }
@@ -326,7 +325,6 @@ impl FQCount {
 }
 
 fn calculate2(input: &str, phred: u8) -> Result<FQCount, Box<dyn error::Error>> {
-    // Option<Box<dyn std::error::Error>>, Some(Box::new(e))
     eprintln!(">>> fastq count reading \"{}\"", input);
 
     if input == "-" {
