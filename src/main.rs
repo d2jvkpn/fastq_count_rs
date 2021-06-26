@@ -61,10 +61,13 @@ fn main() {
 
     for input in inputs {
         match calculate2(input, phred) {
-            Some(out) => {
+            Ok(out) => {
                 fqc.add(out);
             }
-            None => {}
+            Err(err) => {
+                eprintln!("{:?}", err);
+                process::exit(1);
+            }
         };
     }
 
@@ -279,7 +282,7 @@ impl FQCount {
         }
     }
 
-    fn from_reader<R: BufRead>(reader: R, phred: u8) -> Option<FQCount> {
+    fn from_reader<R: BufRead>(reader: R, phred: u8) -> Result<FQCount, Box<dyn error::Error>> {
         let (tx1, rx1) = sync::mpsc::channel();
         let (tx2, rx2) = sync::mpsc::channel();
 
@@ -302,12 +305,12 @@ impl FQCount {
         for (num, line) in reader.lines().enumerate() {
             let line = match line {
                 Ok(line) => line,
-                Err(err) => return None,
+                Err(err) => return Err(Box::new(err)),
             };
 
             match num % 4 {
-                1 => tx1.send(line).expect("Unable to send on channel"),
-                3 => tx2.send(line).expect("Unable to send on channel"),
+                1 => tx1.send(line)?,
+                3 => tx2.send(line)?,
                 _ => continue,
             }
         }
@@ -318,33 +321,32 @@ impl FQCount {
         let fqc2 = th2.join().unwrap();
         fqc.add(fqc2);
 
-        return Some(fqc);
+        return Ok(fqc);
     }
 }
 
-fn calculate2(input: &str, phred: u8) -> Option<FQCount> {
+fn calculate2(input: &str, phred: u8) -> Result<FQCount, Box<dyn error::Error>> {
     // Option<Box<dyn std::error::Error>>, Some(Box::new(e))
     eprintln!(">>> fastq count reading \"{}\"", input);
 
     if input == "-" {
         let stdin = io::stdin();
         let handle = stdin.lock();
-        let fqc = FQCount::from_reader(handle, phred)?;
-        return Some(fqc);
+        FQCount::from_reader(handle, phred)?;
     }
 
     let file = match fs::File::open(input) {
-        Ok(f) => f,
-        Err(e) => return None,
+        Ok(file) => file,
+        Err(e) => return Err(Box::new(e)),
     };
 
     if input.ends_with(".gz") {
         let reader = io::BufReader::new(GzDecoder::new(io::BufReader::new(file)));
         let fqc = FQCount::from_reader(reader, phred)?;
-        return Some(fqc);
+        return Ok(fqc);
     }
 
     let reader = io::BufReader::new(file);
     let fqc = FQCount::from_reader(reader, phred)?;
-    return Some(fqc);
+    return Ok(fqc);
 }
