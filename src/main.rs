@@ -317,8 +317,8 @@ impl FQCount {
         drop(tx1);
         drop(tx2);
 
-        let mut fqc = th1.join().unwrap();
-        let fqc2 = th2.join().unwrap();
+        let mut fqc = th1.join().unwrap(); //?? handle error
+        let fqc2 = th2.join().unwrap(); //?? handle error
         fqc.add(fqc2);
 
         return Ok(fqc);
