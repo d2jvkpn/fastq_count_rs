@@ -13,7 +13,7 @@ const AUTHORS: &'static str = env!("CARGO_PKG_AUTHORS");
 
 fn main() {
     //##
-    let input_arg = Arg::with_name("inputs")
+    let inputs_arg = Arg::with_name("inputs")
         .takes_value(true)
         .required(true)
         .multiple(true)
@@ -44,7 +44,7 @@ fn main() {
         .author(AUTHORS)
         .version(VERSION)
         .set_term_width(100)
-        .arg(input_arg)
+        .arg(inputs_arg)
         .arg(phred_arg)
         .arg(json_format_arg)
         .arg(output_arg)
