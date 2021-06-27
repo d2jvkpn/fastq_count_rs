@@ -13,8 +13,7 @@ const AUTHORS: &'static str = env!("CARGO_PKG_AUTHORS");
 
 fn main() {
     //##
-    let input_arg = Arg::with_name("input")
-        .long("input")
+    let input_arg = Arg::with_name("inputs")
         .takes_value(true)
         .required(true)
         .multiple(true)
@@ -52,7 +51,7 @@ fn main() {
         .get_matches();
 
     let phred = args.value_of("phred").unwrap().parse::<u8>().unwrap();
-    let inputs = args.values_of("input").unwrap();
+    let inputs = args.values_of("inputs").unwrap();
     let json_format = args.is_present("json_format");
     let output = args.value_of("output").unwrap();
 
