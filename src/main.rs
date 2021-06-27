@@ -324,12 +324,13 @@ impl FQCount {
 }
 
 fn calculate2(input: &str, phred: u8) -> Result<FQCount, Box<dyn error::Error>> {
-    eprintln!(">>> fastq count reading \"{}\"", input);
+    eprintln!(">>> fastq count input: \"{}\"", input);
 
     if input == "-" {
         let stdin = io::stdin();
         let handle = stdin.lock();
-        FQCount::from_reader(handle, phred)?;
+        let fqc = FQCount::from_reader(handle, phred)?;
+        return Ok(fqc);
     }
 
     let file = match fs::File::open(input) {
