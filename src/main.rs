@@ -289,7 +289,7 @@ impl FQCount {
             for line in rx1 {
                 fqc.countb2(line);
             }
-            fqc
+            return fqc;
         });
 
         let th2 = thread::spawn(move || {
@@ -297,7 +297,7 @@ impl FQCount {
             for line in rx2 {
                 fqc.countq2(line);
             }
-            fqc
+            return fqc;
         });
 
         for (num, line) in reader.lines().enumerate() {
