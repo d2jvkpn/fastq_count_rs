@@ -348,8 +348,7 @@ fn calculate2(input: &str, phred: u8) -> Result<FQCount, Box<dyn error::Error>> 
     if input == "-" {
         let stdin = io::stdin();
         let handle = stdin.lock();
-        let fqc = FQCount::from_reader(handle, phred)?;
-        return Ok(fqc);
+        return FQCount::from_reader(handle, phred);
     }
 
     let file = match fs::File::open(input) {
@@ -359,12 +358,13 @@ fn calculate2(input: &str, phred: u8) -> Result<FQCount, Box<dyn error::Error>> 
 
     if input.ends_with(".gz") {
         let reader = io::BufReader::new(GzDecoder::new(io::BufReader::new(file)));
-        let fqc = FQCount::from_reader(reader, phred)?;
-        return Ok(fqc);
+        return FQCount::from_reader(reader, phred);
     }
 
     let reader = io::BufReader::new(file);
+    return FQCount::from_reader(reader, phred);
+    /*
     let fqc = FQCount::from_reader(reader, phred)?;
-
     return Ok(fqc);
+    */
 }
