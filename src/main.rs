@@ -4,6 +4,7 @@ use std::{error, fs, io, process, sync, thread};
 #[macro_use]
 extern crate serde_derive;
 
+use chrono::prelude::*;
 use clap::{App, Arg};
 use flate2::bufread::GzDecoder;
 
@@ -57,6 +58,7 @@ fn main() {
 
     //##
     let mut fqc = FQCount::new(phred);
+    let start: DateTime<Local> = Local::now();
 
     for input in inputs {
         match calculate2(input, phred) {
@@ -72,13 +74,25 @@ fn main() {
 
     //##
     let result = if json_format { fqc.json() } else { fqc.text() };
+    let log_elapsed = || {
+        let end: DateTime<Local> = Local::now();
+        // let dura = end.signed_duration_since(start);
+        eprintln!(
+            "{} fastq count elapsed: {:?}",
+            end.to_rfc3339_opts(SecondsFormat::Millis, true),
+            end.signed_duration_since(start).to_std().unwrap()
+        );
+    };
+
     if output == "" {
         println!("{}", result);
+        log_elapsed();
         return;
     }
 
     let mut file = fs::File::create(output).unwrap();
     writeln!(file, "{}", result).unwrap();
+    log_elapsed();
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -324,7 +338,12 @@ impl FQCount {
 }
 
 fn calculate2(input: &str, phred: u8) -> Result<FQCount, Box<dyn error::Error>> {
-    eprintln!(">>> fastq count input: \"{}\"", input);
+    let local: DateTime<Local> = Local::now();
+    eprintln!(
+        "{} fastq count input: \"{}\"",
+        local.to_rfc3339_opts(SecondsFormat::Millis, true),
+        input
+    );
 
     if input == "-" {
         let stdin = io::stdin();
@@ -346,5 +365,6 @@ fn calculate2(input: &str, phred: u8) -> Result<FQCount, Box<dyn error::Error>> 
 
     let reader = io::BufReader::new(file);
     let fqc = FQCount::from_reader(reader, phred)?;
+
     return Ok(fqc);
 }
