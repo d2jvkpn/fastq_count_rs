@@ -61,7 +61,7 @@ fn main() {
     let start: DateTime<Local> = Local::now();
 
     for input in inputs {
-        match calculate2(input, phred) {
+        match calculate(input, phred) {
             Ok(out) => {
                 fqc.add(out);
             }
@@ -186,88 +186,8 @@ impl FQCount {
     }
 }
 
-// classic way
 impl FQCount {
-    #[allow(dead_code)]
-    fn countb(&mut self, line: &str) {
-        self.reads += 1;
-        self.bases += line.len() as u64;
-
-        for v in line.to_ascii_uppercase().chars() {
-            if v == 'G' || v == 'C' {
-                self.gc += 1;
-            } else if v == 'N' {
-                self.n += 1;
-            }
-        }
-    }
-
-    #[allow(dead_code)]
-    fn countq(&mut self, line: &str) {
-        for v in line.as_bytes() {
-            let q = *v as u8 - self.phred;
-
-            if q < 20 {
-                continue;
-            }
-            self.q20 += 1;
-
-            if q >= 30 {
-                self.q30 += 1;
-            }
-        }
-    }
-
-    #[allow(dead_code)]
-    fn read<R: BufRead>(&mut self, reader: R) -> Option<io::Error> {
-        for (num, line) in reader.lines().enumerate() {
-            let line = match line {
-                Ok(line) => line,
-                Err(err) => return Some(err),
-            };
-
-            match num % 4 {
-                1 => self.countb(&line),
-                3 => self.countq(&line),
-                _ => {}
-            }
-        }
-
-        return None;
-    }
-}
-
-#[allow(dead_code)]
-fn calculate(input: &str, fqc: &mut FQCount) -> Option<io::Error> {
-    // Option<Box<dyn std::error::Error>>
-    eprintln!(">>> fastq count reading \"{}\"", input);
-
-    if input == "-" {
-        let stdin = io::stdin();
-        let handle = stdin.lock();
-        fqc.read(handle)?;
-        return None;
-    }
-
-    let file = match fs::File::open(input) {
-        Ok(f) => f,
-        Err(e) => return Some(e),
-    };
-
-    if input.ends_with(".gz") {
-        let reader = io::BufReader::new(GzDecoder::new(io::BufReader::new(file)));
-        fqc.read(reader)?;
-    } else {
-        let reader = io::BufReader::new(file);
-        fqc.read(reader)?;
-    }
-
-    return None;
-}
-
-// multithreading with channels
-impl FQCount {
-    fn countb2(&mut self, line: String) {
+    fn countb(&mut self, line: String) {
         self.reads += 1;
         self.bases += line.len() as u64;
 
@@ -280,7 +200,7 @@ impl FQCount {
         }
     }
 
-    fn countq2(&mut self, line: String) {
+    fn countq(&mut self, line: String) {
         for v in line.as_bytes() {
             let q = *v as u8 - self.phred;
 
@@ -301,7 +221,7 @@ impl FQCount {
         let th1 = thread::spawn(move || {
             let mut fqc = FQCount::new(phred);
             for line in rx1 {
-                fqc.countb2(line);
+                fqc.countb(line);
             }
             return fqc;
         });
@@ -309,7 +229,7 @@ impl FQCount {
         let th2 = thread::spawn(move || {
             let mut fqc = FQCount::new(phred);
             for line in rx2 {
-                fqc.countq2(line);
+                fqc.countq(line);
             }
             return fqc;
         });
@@ -337,7 +257,8 @@ impl FQCount {
     }
 }
 
-fn calculate2(input: &str, phred: u8) -> Result<FQCount, Box<dyn error::Error>> {
+// Result<Box<dyn BufRead>, Box<dyn error::Error>>
+fn calculate(input: &str, phred: u8) -> Result<FQCount, Box<dyn error::Error>> {
     let local: DateTime<Local> = Local::now();
     eprintln!(
         "{} fastq count input: \"{}\"",
