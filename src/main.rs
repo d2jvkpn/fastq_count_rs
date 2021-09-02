@@ -27,11 +27,11 @@ fn main() {
         .default_value("33")
         .help("phred value");
 
-    let json_format_arg = Arg::with_name("json_format")
-        .long("json_format")
+    let json_arg = Arg::with_name("json")
+        .long("json")
         .takes_value(false)
         .required(false)
-        .help("output json format");
+        .help("output in json format");
 
     let output_arg = Arg::with_name("output")
         .long("output")
@@ -47,13 +47,13 @@ fn main() {
         .set_term_width(100)
         .arg(inputs_arg)
         .arg(phred_arg)
-        .arg(json_format_arg)
+        .arg(json_arg)
         .arg(output_arg)
         .get_matches();
 
     let phred = args.value_of("phred").unwrap().parse::<u8>().unwrap();
     let inputs = args.values_of("inputs").unwrap();
-    let json_format = args.is_present("json_format");
+    let json_format = args.is_present("json");
     let output = args.value_of("output").unwrap();
 
     //##
@@ -66,7 +66,7 @@ fn main() {
                 fqc.add(out);
             }
             Err(err) => {
-                eprintln!("{:?}", err);
+                eprintln!("read {}: {:?}", input, err);
                 process::exit(1);
             }
         };
