@@ -95,7 +95,7 @@ fn main() {
     log_elapsed();
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Default, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct FQCount {
     phred: u8, // phred value
@@ -120,20 +120,7 @@ impl FQCount {
     fn new(phred: u8) -> FQCount {
         FQCount {
             phred: phred,
-
-            reads: 0,
-            bases: 0,
-            n: 0,
-            gc: 0,
-            q20: 0,
-            q30: 0,
-
-            reads_mb: 0.0,
-            bases_gb: 0.0,
-            n_perc: 0.0,
-            gc_perc: 0.0,
-            q20_perc: 0.0,
-            q30_perc: 0.0,
+            ..Default::default()
         }
     }
 
