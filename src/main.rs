@@ -218,20 +218,20 @@ impl FQCount {
         let (tx1, rx1) = sync::mpsc::channel();
         let (tx2, rx2) = sync::mpsc::channel();
 
-        let th1 = thread::spawn(move || {
+        let th1 = thread::spawn(move || -> Result<FQCount, std::io::Error> {
             let mut fqc = FQCount::new(phred);
             for line in rx1 {
                 fqc.countb(line);
             }
-            return fqc;
+            return Ok(fqc);
         });
 
-        let th2 = thread::spawn(move || {
+        let th2 = thread::spawn(move || -> Result<FQCount, std::io::Error> {
             let mut fqc = FQCount::new(phred);
             for line in rx2 {
                 fqc.countq(line);
             }
-            return fqc;
+            return Ok(fqc);
         });
 
         for (num, line) in reader.lines().enumerate() {
@@ -249,8 +249,9 @@ impl FQCount {
         drop(tx1);
         drop(tx2);
 
-        let mut fqc = th1.join().unwrap(); //?? handle error
-        let fqc2 = th2.join().unwrap(); //?? handle error
+        // https://stackoverflow.com/questions/56535634/propagating-errors-from-within-a-closure-in-a-thread-in-rust
+        let mut fqc = th1.join().unwrap()?;
+        let fqc2 = th2.join().unwrap()?;
         fqc.add(fqc2);
 
         return Ok(fqc);
