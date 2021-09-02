@@ -200,49 +200,6 @@ impl FQCount {
             }
         }
     }
-
-    fn from_reader<R: BufRead>(reader: R, phred: u8) -> Result<FQCount, Box<dyn error::Error>> {
-        let (tx1, rx1) = sync::mpsc::channel();
-        let (tx2, rx2) = sync::mpsc::channel();
-
-        let th1 = thread::spawn(move || -> Result<FQCount, std::io::Error> {
-            let mut fqc = FQCount::new(phred);
-            for line in rx1 {
-                fqc.countb(line);
-            }
-            return Ok(fqc);
-        });
-
-        let th2 = thread::spawn(move || -> Result<FQCount, std::io::Error> {
-            let mut fqc = FQCount::new(phred);
-            for line in rx2 {
-                fqc.countq(line);
-            }
-            return Ok(fqc);
-        });
-
-        for (num, line) in reader.lines().enumerate() {
-            let line = match line {
-                Ok(line) => line,
-                Err(err) => return Err(Box::new(err)),
-            };
-
-            match num % 4 {
-                1 => tx1.send(line)?,
-                3 => tx2.send(line)?,
-                _ => continue,
-            }
-        }
-        drop(tx1);
-        drop(tx2);
-
-        // https://stackoverflow.com/questions/56535634/propagating-errors-from-within-a-closure-in-a-thread-in-rust
-        let mut fqc = th1.join().unwrap()?;
-        let fqc2 = th2.join().unwrap()?;
-        fqc.add(fqc2);
-
-        return Ok(fqc);
-    }
 }
 
 // Result<Box<dyn BufRead>, Box<dyn error::Error>>
@@ -257,7 +214,7 @@ fn calculate(input: &str, phred: u8) -> Result<FQCount, Box<dyn error::Error>> {
     if input == "-" {
         let stdin = io::stdin();
         let handle = stdin.lock();
-        let fqc = FQCount::from_reader(handle, phred)?;
+        let fqc = read_fastq(handle, phred)?;
         return Ok(fqc);
     }
 
@@ -271,9 +228,52 @@ fn calculate(input: &str, phred: u8) -> Result<FQCount, Box<dyn error::Error>> {
 
     if input.ends_with(".gz") {
         let reader = io::BufReader::new(GzDecoder::new(io::BufReader::new(file)));
-        return FQCount::from_reader(reader, phred);
+        return read_fastq(reader, phred);
     }
 
     let reader = io::BufReader::new(file);
-    return FQCount::from_reader(reader, phred);
+    return read_fastq(reader, phred);
+}
+
+fn read_fastq<R: BufRead>(reader: R, phred: u8) -> Result<FQCount, Box<dyn error::Error>> {
+    let (tx1, rx1) = sync::mpsc::channel();
+    let (tx2, rx2) = sync::mpsc::channel();
+
+    let th1 = thread::spawn(move || -> Result<FQCount, std::io::Error> {
+        let mut fqc = FQCount::new(phred);
+        for line in rx1 {
+            fqc.countb(line);
+        }
+        return Ok(fqc);
+    });
+
+    let th2 = thread::spawn(move || -> Result<FQCount, std::io::Error> {
+        let mut fqc = FQCount::new(phred);
+        for line in rx2 {
+            fqc.countq(line);
+        }
+        return Ok(fqc);
+    });
+
+    for (num, line) in reader.lines().enumerate() {
+        let line = match line {
+            Ok(line) => line,
+            Err(err) => return Err(Box::new(err)),
+        };
+
+        match num % 4 {
+            1 => tx1.send(line)?,
+            3 => tx2.send(line)?,
+            _ => continue,
+        }
+    }
+    drop(tx1);
+    drop(tx2);
+
+    // https://stackoverflow.com/questions/56535634/propagating-errors-from-within-a-closure-in-a-thread-in-rust
+    let mut fqc = th1.join().unwrap()?;
+    let fqc2 = th2.join().unwrap()?;
+    fqc.add(fqc2);
+
+    return Ok(fqc);
 }
