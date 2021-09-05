@@ -80,7 +80,7 @@ fn main() {
         eprintln!(
             "{} fastq count elapsed: {:?}",
             end.to_rfc3339_opts(SecondsFormat::Millis, true),
-            end.signed_duration_since(start).to_std().unwrap()
+            end.signed_duration_since(start).to_std().unwrap(),
         );
     };
 
@@ -202,9 +202,9 @@ impl FQCount {
     }
 }
 
-// Result<Box<dyn BufRead>, Box<dyn error::Error>>
 fn calculate(input: &str, phred: u8) -> Result<FQCount, Box<dyn error::Error>> {
     let local: DateTime<Local> = Local::now();
+
     eprintln!(
         "{} fastq count input: \"{}\"",
         local.to_rfc3339_opts(SecondsFormat::Millis, true),
@@ -212,34 +212,23 @@ fn calculate(input: &str, phred: u8) -> Result<FQCount, Box<dyn error::Error>> {
     );
 
     if input == "-" {
-        let stdin = io::stdin();
-        let handle = stdin.lock();
-        let fqc = read_fastq(handle, phred)?;
-        return Ok(fqc);
+        return read_fastq(Box::new(io::BufReader::new(io::stdin())), phred);
     }
 
-    /*
-    let file = match fs::File::open(input) {
-        Ok(file) => file,
-        Err(e) => return Err(Box::new(e)),
-    };
-    */
     let file = fs::File::open(input)?;
-
     if input.ends_with(".gz") {
-        let reader = io::BufReader::new(GzDecoder::new(io::BufReader::new(file)));
-        return read_fastq(reader, phred);
+        let decoder = GzDecoder::new(io::BufReader::new(file));
+        return read_fastq(Box::new(io::BufReader::new(decoder)), phred);
     }
 
-    let reader = io::BufReader::new(file);
-    return read_fastq(reader, phred);
+    return read_fastq(Box::new(io::BufReader::new(file)), phred);
 }
 
-fn read_fastq<R: BufRead>(reader: R, phred: u8) -> Result<FQCount, Box<dyn error::Error>> {
+fn read_fastq(reader: Box<dyn BufRead>, phred: u8) -> Result<FQCount, Box<dyn error::Error>> {
     let (tx1, rx1) = sync::mpsc::channel();
     let (tx2, rx2) = sync::mpsc::channel();
 
-    let th1 = thread::spawn(move || -> Result<FQCount, std::io::Error> {
+    let th1 = thread::spawn(move || -> Result<FQCount, io::Error> {
         let mut fqc = FQCount::new(phred);
         for line in rx1 {
             fqc.countb(line);
@@ -247,7 +236,7 @@ fn read_fastq<R: BufRead>(reader: R, phred: u8) -> Result<FQCount, Box<dyn error
         return Ok(fqc);
     });
 
-    let th2 = thread::spawn(move || -> Result<FQCount, std::io::Error> {
+    let th2 = thread::spawn(move || -> Result<FQCount, io::Error> {
         let mut fqc = FQCount::new(phred);
         for line in rx2 {
             fqc.countq(line);
