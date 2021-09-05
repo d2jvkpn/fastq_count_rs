@@ -1,12 +1,12 @@
 use std::io::prelude::*;
 use std::{error, fs, io, process, sync, thread};
 
-#[macro_use]
-extern crate serde_derive;
-
 use chrono::prelude::*;
 use clap::{App, Arg};
 use flate2::bufread::GzDecoder;
+
+#[macro_use]
+extern crate serde_derive;
 
 // https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-sets-for-crates
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
@@ -216,12 +216,14 @@ fn calculate(input: &str, phred: u8) -> Result<FQCount, Box<dyn error::Error>> {
     }
 
     let file = fs::File::open(input)?;
-    if input.ends_with(".gz") {
-        let decoder = GzDecoder::new(io::BufReader::new(file));
-        return read_fastq(Box::new(io::BufReader::new(decoder)), phred);
-    }
+    let reader = io::BufReader::new(file);
 
-    return read_fastq(Box::new(io::BufReader::new(file)), phred);
+    match input {
+        input if input.ends_with(".gz") => {
+            read_fastq(Box::new(io::BufReader::new(GzDecoder::new(reader))), phred)
+        }
+        _ => read_fastq(Box::new(reader), phred),
+    }
 }
 
 fn read_fastq(reader: Box<dyn BufRead>, phred: u8) -> Result<FQCount, Box<dyn error::Error>> {
