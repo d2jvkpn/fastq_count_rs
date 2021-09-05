@@ -64,7 +64,7 @@ fn main() {
         let local: DateTime<Local> = Local::now();
 
         eprintln!(
-            "{} fastq count input: \"{}\"",
+            "{} fastq count read input: \"{}\"",
             local.to_rfc3339_opts(SecondsFormat::Millis, true),
             input
         );
