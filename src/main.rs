@@ -61,15 +61,24 @@ fn main() {
     let start: DateTime<Local> = Local::now();
 
     for input in inputs {
-        match calculate(input, phred) {
-            Ok(out) => {
-                fqc.add(out);
-            }
+        let local: DateTime<Local> = Local::now();
+
+        eprintln!(
+            "{} fastq count input: \"{}\"",
+            local.to_rfc3339_opts(SecondsFormat::Millis, true),
+            input
+        );
+
+        match read_input(input) {
+            Ok(buf_read) => match read_fastq(buf_read, phred) {
+                Ok(out) => fqc.add(out),
+                Err(err) => panic!("read_fastq {}: {:?}", input, err),
+            },
             Err(err) => {
-                eprintln!("read {}: {:?}", input, err);
+                eprintln!("read input {}: {:?}", input, err);
                 process::exit(1);
             }
-        };
+        }
     }
 
     //##
@@ -202,28 +211,18 @@ impl FQCount {
     }
 }
 
-fn calculate(input: &str, phred: u8) -> Result<FQCount, Box<dyn error::Error>> {
-    let local: DateTime<Local> = Local::now();
-
-    eprintln!(
-        "{} fastq count input: \"{}\"",
-        local.to_rfc3339_opts(SecondsFormat::Millis, true),
-        input
-    );
-
+fn read_input(input: &str) -> Result<Box<dyn BufRead>, Box<dyn error::Error>> {
     if input == "-" {
-        return read_fastq(Box::new(io::BufReader::new(io::stdin())), phred);
+        return Ok(Box::new(io::BufReader::new(io::stdin())));
     }
 
     let file = fs::File::open(input)?;
     let reader = io::BufReader::new(file);
 
     match input {
-        input if input.ends_with(".gz") => {
-            read_fastq(Box::new(io::BufReader::new(GzDecoder::new(reader))), phred)
-        }
-        _ => read_fastq(Box::new(reader), phred),
-    }
+        input if input.ends_with(".gz") => Ok(Box::new(io::BufReader::new(GzDecoder::new(reader)))),
+        _ => Ok(Box::new(reader)),
+    };
 }
 
 fn read_fastq(reader: Box<dyn BufRead>, phred: u8) -> Result<FQCount, Box<dyn error::Error>> {
