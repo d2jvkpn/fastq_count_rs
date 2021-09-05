@@ -128,6 +128,21 @@ impl FQCount {
     }
 }
 
+impl fmt::Display for FQCount {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "Reads: {:.2}MB, Bases: {:.2}GB, N-bases: {:.2}%, GC: {:.2}%, Q20: {:.2}%, Q30: {:.2}%",
+            self.calc_reads(),
+            self.calc_bases(),
+            self.calc_n(),
+            self.calc_gc(),
+            self.calc_q20(),
+            self.calc_q30(),
+        )
+    }
+}
+
 impl FQCount {
     fn countb(&mut self, line: String) {
         self.reads += 1;
@@ -154,21 +169,6 @@ impl FQCount {
                 self.q30 += 1;
             }
         }
-    }
-}
-
-impl fmt::Display for FQCount {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "Reads: {:.2}MB, Bases: {:.2}GB, N-bases: {:.2}%, GC: {:.2}%, Q20: {:.2}%, Q30: {:.2}%",
-            self.calc_reads(),
-            self.calc_bases(),
-            self.calc_n(),
-            self.calc_gc(),
-            self.calc_q20(),
-            self.calc_q30(),
-        )
     }
 }
 
