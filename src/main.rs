@@ -3,7 +3,6 @@ use std::{error, fs, io, process, sync, thread};
 
 use chrono::prelude::*;
 use clap::{App, Arg};
-use flate2::bufread::GzDecoder;
 
 #[macro_use]
 extern crate serde_derive;
@@ -53,7 +52,7 @@ fn main() {
 
     let phred = args.value_of("phred").unwrap().parse::<u8>().unwrap();
     let inputs = args.values_of("inputs").unwrap();
-    let json_format = args.is_present("json");
+    let json_fmt = args.is_present("json");
     let output = args.value_of("output").unwrap();
 
     //##
@@ -69,7 +68,7 @@ fn main() {
             input
         );
 
-        match read_input(input) {
+        match fastq_count_rs::read_input(input) {
             Ok(buf_read) => match read_fastq(buf_read, phred) {
                 Ok(out) => fqc.add(out),
                 Err(err) => panic!("read_fastq {}: {:?}", input, err),
@@ -78,30 +77,21 @@ fn main() {
                 eprintln!("read input {}: {:?}", input, err);
                 process::exit(1);
             }
-        }
-    }
+        };
 
-    //##
-    let result = if json_format { fqc.json() } else { fqc.text() };
-    let log_elapsed = || {
-        let end: DateTime<Local> = Local::now();
-        // let dura = end.signed_duration_since(start);
-        eprintln!(
-            "{} fastq count elapsed: {:?}",
-            end.to_rfc3339_opts(SecondsFormat::Millis, true),
-            end.signed_duration_since(start).to_std().unwrap(),
-        );
-    };
+        let log_elapsed = || {
+            let end: DateTime<Local> = Local::now();
+            // let dura = end.signed_duration_since(start);
+            eprintln!(
+                "{} fastq count elapsed: {:?}",
+                end.to_rfc3339_opts(SecondsFormat::Millis, true),
+                end.signed_duration_since(start).to_std().unwrap(),
+            );
+        };
 
-    if output == "" {
-        println!("{}", result);
         log_elapsed();
-        return;
+        fqc.output(output, json_fmt).unwrap();
     }
-
-    let mut file = fs::File::create(output).unwrap();
-    writeln!(file, "{}", result).unwrap();
-    log_elapsed();
 }
 
 #[derive(Default, Debug, Serialize, Deserialize)]
@@ -155,6 +145,11 @@ impl FQCount {
         self.q30 += inst.q30;
     }
 
+    fn json(&mut self) -> String {
+        self.percs();
+        serde_json::to_string(&self).unwrap_or(String::from(""))
+    }
+
     fn text(&mut self) -> String {
         self.percs();
         format!(
@@ -174,11 +169,6 @@ impl FQCount {
             self.q20,
             self.q30,
         )
-    }
-
-    fn json(&mut self) -> String {
-        self.percs();
-        serde_json::to_string(&self).unwrap_or(String::from(""))
     }
 }
 
@@ -209,20 +199,19 @@ impl FQCount {
             }
         }
     }
-}
 
-fn read_input(input: &str) -> Result<Box<dyn BufRead>, Box<dyn error::Error>> {
-    if input == "-" {
-        return Ok(Box::new(io::BufReader::new(io::stdin())));
+    fn output(&mut self, output: &str, json_fmt: bool) -> Result<(), io::Error> {
+        let result = if json_fmt { self.json() } else { self.text() };
+
+        if output == "" {
+            println!("{}", result);
+            return Ok(());
+        }
+
+        let mut file = fs::File::create(output)?;
+        writeln!(file, "{}", result)?;
+        return Ok(());
     }
-
-    let file = fs::File::open(input)?;
-    let reader = io::BufReader::new(file);
-
-    match input {
-        input if input.ends_with(".gz") => Ok(Box::new(io::BufReader::new(GzDecoder::new(reader)))),
-        _ => Ok(Box::new(reader)),
-    };
 }
 
 fn read_fastq(reader: Box<dyn BufRead>, phred: u8) -> Result<FQCount, Box<dyn error::Error>> {
