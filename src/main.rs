@@ -23,48 +23,48 @@ struct Config<'a> {
 
 fn main() {
     //##
-    let inputs_arg = Arg::with_name("inputs")
-        .takes_value(true)
-        .required(true)
-        .multiple(true)
-        .help("input fastq, gzipped fastq or stdin(-)");
-
-    let phred_arg = Arg::with_name("phred")
-        .long("phred")
-        .takes_value(true)
-        .required(false)
-        .default_value("33")
-        .help("phred value");
-
-    let output_arg = Arg::with_name("output")
-        .long("output")
-        .takes_value(true)
-        .required(false)
-        .default_value("")
-        .help("output to file");
-
-    let json_arg = Arg::with_name("json")
-        .long("json")
-        .takes_value(false)
-        .required(false)
-        .help("output in json format");
-
-    let debug_arg = Arg::with_name("debug")
-        .long("debug")
-        .takes_value(false)
-        .required(false)
-        .help("run in debug mode");
-
     let matches = App::new("fastq(https://en.wikipedia.org/wiki/FASTQ_format) count in rust")
         .about("count fastq reads, bases, N Bases, Q20, Q30, GC")
         .author(AUTHORS)
         .version(VERSION)
         .set_term_width(100)
-        .arg(inputs_arg)
-        .arg(phred_arg)
-        .arg(output_arg)
-        .arg(json_arg)
-        .arg(debug_arg)
+        .arg(
+            Arg::with_name("inputs")
+                .takes_value(true)
+                .required(true)
+                .multiple(true)
+                .help("input fastq, gzipped fastq or stdin(-)"),
+        )
+        .arg(
+            Arg::with_name("phred")
+                .long("phred")
+                .takes_value(true)
+                .required(false)
+                .default_value("33")
+                .help("phred value"),
+        )
+        .arg(
+            Arg::with_name("output")
+                .long("output")
+                .takes_value(true)
+                .required(false)
+                .default_value("")
+                .help("output to file"),
+        )
+        .arg(
+            Arg::with_name("json")
+                .long("json")
+                .takes_value(false)
+                .required(false)
+                .help("output in json format"),
+        )
+        .arg(
+            Arg::with_name("debug")
+                .long("debug")
+                .takes_value(false)
+                .required(false)
+                .help("run in debug mode"),
+        )
         .get_matches();
 
     // let inputs = args.values_of("inputs");
