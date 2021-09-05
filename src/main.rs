@@ -4,6 +4,7 @@ use chrono::prelude::*;
 use clap::{App, Arg, Values};
 
 mod fq_count;
+use fq_count::{base, count2};
 
 #[macro_use]
 extern crate serde_derive;
@@ -85,7 +86,7 @@ fn main() {
     }
 
     //##
-    let mut fqc = fq_count::FQCount::new(config.phred);
+    let mut fqc = base::FQCount::new(config.phred);
     let start: DateTime<Local> = Local::now();
 
     for input in config.inputs {
@@ -98,9 +99,9 @@ fn main() {
         );
 
         match fastq_count_rs::read_input(&input) {
-            Ok(buf_read) => match fq_count::read(buf_read, config.phred) {
+            Ok(buf_read) => match count2::read(buf_read, config.phred) {
                 Ok(y) => fqc.add(y),
-                Err(err) => panic!("fq_count::read {}: {:?}", input, err),
+                Err(err) => panic!("fq_count::count2::read {}: {:?}", input, err),
             },
             Err(err) => {
                 eprintln!("read_input {}: {:?}", input, err);

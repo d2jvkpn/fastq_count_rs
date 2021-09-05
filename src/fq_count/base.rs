@@ -1,24 +1,24 @@
 use std::io::prelude::*;
-use std::{error, fmt, fs, io, sync, thread};
+use std::{fmt, fs, io};
 
 #[derive(Default, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FQCount {
-    phred: u8, // phred value
+    pub phred: u8, // phred value
 
-    reads: u64, // reads number
-    bases: u64, // bases number
-    n: u64,     // base N number
-    gc: u64,    // base GC number
-    q20: u64,   // Q20 number
-    q30: u64,   // Q30 number
+    pub reads: u64, // reads number
+    pub bases: u64, // bases number
+    pub n: u64,     // base N number
+    pub gc: u64,    // base GC number
+    pub q20: u64,   // Q20 number
+    pub q30: u64,   // Q30 number
 
-    reads_mb: f64,
-    bases_gb: f64,
-    n_perc: f64,
-    gc_perc: f64,  // GC percentage
-    q20_perc: f64, // Q20 percentage
-    q30_perc: f64, // Q30 percentage
+    pub reads_mb: f64,
+    pub bases_gb: f64,
+    pub n_perc: f64,
+    pub gc_perc: f64,  // GC percentage
+    pub q20_perc: f64, // Q20 percentage
+    pub q30_perc: f64, // Q30 percentage
 }
 
 // basic
@@ -141,76 +141,4 @@ impl fmt::Display for FQCount {
             self.calc_q30(),
         )
     }
-}
-
-impl FQCount {
-    fn countb(&mut self, line: String) {
-        self.reads += 1;
-        self.bases += line.len() as u64;
-
-        for v in line.to_ascii_uppercase().chars() {
-            match v {
-                'G' | 'C' => self.gc += 1,
-                'N' => self.n += 1,
-                _ => {}
-            }
-        }
-    }
-
-    fn countq(&mut self, line: String) {
-        for v in line.as_bytes() {
-            let q = *v as u8 - self.phred;
-
-            if q < 20 {
-                continue;
-            }
-            self.q20 += 1;
-            if q >= 30 {
-                self.q30 += 1;
-            }
-        }
-    }
-}
-
-pub fn read(reader: Box<dyn BufRead>, phred: u8) -> Result<FQCount, Box<dyn error::Error>> {
-    let (tx1, rx1) = sync::mpsc::channel();
-    let (tx2, rx2) = sync::mpsc::channel();
-
-    let th1 = thread::spawn(move || -> Result<FQCount, io::Error> {
-        let mut fqc = FQCount::new(phred);
-        for line in rx1 {
-            fqc.countb(line);
-        }
-        return Ok(fqc);
-    });
-
-    let th2 = thread::spawn(move || -> Result<FQCount, io::Error> {
-        let mut fqc = FQCount::new(phred);
-        for line in rx2 {
-            fqc.countq(line);
-        }
-        return Ok(fqc);
-    });
-
-    for (num, line) in reader.lines().enumerate() {
-        let line = match line {
-            Ok(line) => line,
-            Err(err) => return Err(Box::new(err)),
-        };
-
-        match num % 4 {
-            1 => tx1.send(line)?,
-            3 => tx2.send(line)?,
-            _ => continue,
-        }
-    }
-    drop(tx1);
-    drop(tx2);
-
-    // https://stackoverflow.com/questions/56535634/propagating-errors-from-within-a-closure-in-a-thread-in-rust
-    let mut fqc = th1.join().unwrap()?;
-    let fqc2 = th2.join().unwrap()?;
-    fqc.add(fqc2);
-
-    return Ok(fqc);
 }
