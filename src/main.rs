@@ -3,6 +3,7 @@ use std::process;
 use chrono::prelude::*;
 use clap::{App, Arg, Values};
 
+use fastq_count_rs::read_input;
 mod fq_count;
 use fq_count::{base, count2};
 
@@ -98,7 +99,7 @@ fn main() {
             input
         );
 
-        match fastq_count_rs::read_input(&input) {
+        match read_input(&input) {
             Ok(buf_read) => match count2::read(buf_read, config.phred) {
                 Ok(y) => fqc.add(y),
                 Err(err) => panic!("fq_count::count2::read {}: {:?}", input, err),
