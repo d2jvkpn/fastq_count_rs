@@ -1,5 +1,5 @@
 use std::io::prelude::*;
-use std::{error, fs, io, sync, thread};
+use std::{error, fmt, fs, io, sync, thread};
 
 #[derive(Default, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -30,17 +30,53 @@ impl FQCount {
         }
     }
 
-    fn percs(&mut self) {
+    fn calc_reads(&self) -> f64 {
+        self.reads as f64 / 1e6
+    }
+
+    fn calc_bases(&self) -> f64 {
+        self.bases as f64 / 1e9
+    }
+
+    fn calc_n(&self) -> f64 {
+        if self.bases == 0 {
+            return 0.0;
+        }
+        (self.n * 100_000 / self.bases) as f64 / 1e3
+    }
+
+    fn calc_gc(&self) -> f64 {
+        if self.bases == 0 {
+            return 0.0;
+        }
+        (self.gc * 100_000 / self.bases) as f64 / 1e3
+    }
+
+    fn calc_q20(&self) -> f64 {
+        if self.bases == 0 {
+            return 0.0;
+        }
+        (self.q20 * 100_000 / self.bases) as f64 / 1e3
+    }
+
+    fn calc_q30(&self) -> f64 {
+        if self.bases == 0 {
+            return 0.0;
+        }
+        (self.q30 * 100_000 / self.bases) as f64 / 1e3
+    }
+
+    pub fn percs(&mut self) {
         if self.bases == 0 {
             return;
         }
 
-        self.reads_mb = self.reads as f64 / 1e6;
-        self.bases_gb = self.bases as f64 / 1e9;
-        self.n_perc = (self.n * 100_000 / self.bases) as f64 / 1e3;
-        self.gc_perc = (self.gc * 100_000 / self.bases) as f64 / 1e3;
-        self.q20_perc = (self.q20 * 100_000 / self.bases) as f64 / 1e3;
-        self.q30_perc = (self.q30 * 100_000 / self.bases) as f64 / 1e3;
+        self.reads_mb = self.calc_reads();
+        self.bases_gb = self.calc_bases();
+        self.n_perc = self.calc_n();
+        self.gc_perc = self.calc_gc();
+        self.q20_perc = self.calc_q20();
+        self.q30_perc = self.calc_q30();
     }
 
     pub fn add(&mut self, inst: FQCount) {
@@ -118,6 +154,21 @@ impl FQCount {
                 self.q30 += 1;
             }
         }
+    }
+}
+
+impl fmt::Display for FQCount {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "Reads: {:.2}MB, Bases: {:.2}GB, N-bases: {:.2}%, GC: {:.2}%, Q20: {:.2}%, Q30: {:.2}%",
+            self.calc_reads(),
+            self.calc_bases(),
+            self.calc_n(),
+            self.calc_gc(),
+            self.calc_q20(),
+            self.calc_q30(),
+        )
     }
 }
 

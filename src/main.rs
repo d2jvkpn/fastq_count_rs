@@ -119,5 +119,6 @@ fn main() {
 
         log_elapsed();
         fqc.output(config.output, config.json_fmt).unwrap();
+        // println!("{}", fqc);
     }
 }
