@@ -1,8 +1,9 @@
-use std::io::prelude::*;
-use std::{error, fs, io, process, sync, thread};
+use std::process;
 
 use chrono::prelude::*;
 use clap::{App, Arg};
+
+mod fq_count;
 
 #[macro_use]
 extern crate serde_derive;
@@ -56,7 +57,7 @@ fn main() {
     let output = args.value_of("output").unwrap();
 
     //##
-    let mut fqc = FQCount::new(phred);
+    let mut fqc = fq_count::FQCount::new(phred);
     let start: DateTime<Local> = Local::now();
 
     for input in inputs {
@@ -69,12 +70,12 @@ fn main() {
         );
 
         match fastq_count_rs::read_input(input) {
-            Ok(buf_read) => match read_fastq(buf_read, phred) {
-                Ok(out) => fqc.add(out),
-                Err(err) => panic!("read_fastq {}: {:?}", input, err),
+            Ok(buf_read) => match fq_count::read(buf_read, phred) {
+                Ok(y) => fqc.add(y),
+                Err(err) => panic!("fq_count::read {}: {:?}", input, err),
             },
             Err(err) => {
-                eprintln!("read input {}: {:?}", input, err);
+                eprintln!("read_input {}: {:?}", input, err);
                 process::exit(1);
             }
         };
@@ -92,167 +93,4 @@ fn main() {
         log_elapsed();
         fqc.output(output, json_fmt).unwrap();
     }
-}
-
-#[derive(Default, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct FQCount {
-    phred: u8, // phred value
-
-    reads: u64, // reads number
-    bases: u64, // bases number
-    n: u64,     // base N number
-    gc: u64,    // base GC number
-    q20: u64,   // Q20 number
-    q30: u64,   // Q30 number
-
-    reads_mb: f64,
-    bases_gb: f64,
-    n_perc: f64,
-    gc_perc: f64,  // GC percentage
-    q20_perc: f64, // Q20 percentage
-    q30_perc: f64, // Q30 percentage
-}
-
-// basic
-impl FQCount {
-    fn new(phred: u8) -> FQCount {
-        FQCount {
-            phred: phred,
-            ..Default::default()
-        }
-    }
-
-    fn percs(&mut self) {
-        if self.bases == 0 {
-            return;
-        }
-
-        self.reads_mb = self.reads as f64 / 1e6;
-        self.bases_gb = self.bases as f64 / 1e9;
-        self.n_perc = (self.n * 100_000 / self.bases) as f64 / 1e3;
-        self.gc_perc = (self.gc * 100_000 / self.bases) as f64 / 1e3;
-        self.q20_perc = (self.q20 * 100_000 / self.bases) as f64 / 1e3;
-        self.q30_perc = (self.q30 * 100_000 / self.bases) as f64 / 1e3;
-    }
-
-    fn add(&mut self, inst: FQCount) {
-        self.reads += inst.reads;
-        self.bases += inst.bases;
-        self.n += inst.n;
-        self.gc += inst.gc;
-        self.q20 += inst.q20;
-        self.q30 += inst.q30;
-    }
-
-    fn json(&mut self) -> String {
-        self.percs();
-        serde_json::to_string(&self).unwrap_or(String::from(""))
-    }
-
-    fn text(&mut self) -> String {
-        self.percs();
-        format!(
-            "Reads\tBases\tN-bases\tGC\tQ20\tQ30
-{:.2}MB\t{:.2}GB\t{:.2}%\t{:.2}%\t{:.2}%\t{:.2}%
-{}\t{}\t{}\t{}\t{}\t{}",
-            self.reads_mb,
-            self.bases_gb,
-            self.n_perc,
-            self.gc_perc,
-            self.q20_perc,
-            self.q30_perc,
-            self.reads,
-            self.bases,
-            self.n,
-            self.gc,
-            self.q20,
-            self.q30,
-        )
-    }
-}
-
-impl FQCount {
-    fn countb(&mut self, line: String) {
-        self.reads += 1;
-        self.bases += line.len() as u64;
-
-        for v in line.to_ascii_uppercase().chars() {
-            match v {
-                'G' | 'C' => self.gc += 1,
-                'N' => self.n += 1,
-                _ => {}
-            }
-        }
-    }
-
-    fn countq(&mut self, line: String) {
-        for v in line.as_bytes() {
-            let q = *v as u8 - self.phred;
-
-            if q < 20 {
-                continue;
-            }
-            self.q20 += 1;
-            if q >= 30 {
-                self.q30 += 1;
-            }
-        }
-    }
-
-    fn output(&mut self, output: &str, json_fmt: bool) -> Result<(), io::Error> {
-        let result = if json_fmt { self.json() } else { self.text() };
-
-        if output == "" {
-            println!("{}", result);
-            return Ok(());
-        }
-
-        let mut file = fs::File::create(output)?;
-        writeln!(file, "{}", result)?;
-        return Ok(());
-    }
-}
-
-fn read_fastq(reader: Box<dyn BufRead>, phred: u8) -> Result<FQCount, Box<dyn error::Error>> {
-    let (tx1, rx1) = sync::mpsc::channel();
-    let (tx2, rx2) = sync::mpsc::channel();
-
-    let th1 = thread::spawn(move || -> Result<FQCount, io::Error> {
-        let mut fqc = FQCount::new(phred);
-        for line in rx1 {
-            fqc.countb(line);
-        }
-        return Ok(fqc);
-    });
-
-    let th2 = thread::spawn(move || -> Result<FQCount, io::Error> {
-        let mut fqc = FQCount::new(phred);
-        for line in rx2 {
-            fqc.countq(line);
-        }
-        return Ok(fqc);
-    });
-
-    for (num, line) in reader.lines().enumerate() {
-        let line = match line {
-            Ok(line) => line,
-            Err(err) => return Err(Box::new(err)),
-        };
-
-        match num % 4 {
-            1 => tx1.send(line)?,
-            3 => tx2.send(line)?,
-            _ => continue,
-        }
-    }
-    drop(tx1);
-    drop(tx2);
-
-    // https://stackoverflow.com/questions/56535634/propagating-errors-from-within-a-closure-in-a-thread-in-rust
-    let mut fqc = th1.join().unwrap()?;
-    let fqc2 = th2.join().unwrap()?;
-    fqc.add(fqc2);
-
-    return Ok(fqc);
 }
