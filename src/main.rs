@@ -71,11 +71,7 @@ fn main() {
 
     // let inputs = args.values_of("inputs");
     let config = Config {
-        inputs: matches
-            .values_of("inputs")
-            .map(Values::collect)
-            .unwrap_or_else(|| vec![]),
-
+        inputs: matches.values_of("inputs").map(Values::collect).unwrap_or_else(|| vec![]),
         phred: matches.value_of("phred").unwrap().parse::<u8>().unwrap(),
         output: matches.value_of("output").unwrap(),
         json_fmt: matches.is_present("json"),

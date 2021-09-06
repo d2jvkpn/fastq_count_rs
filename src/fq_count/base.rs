@@ -24,10 +24,7 @@ pub struct FQCount {
 // basic
 impl FQCount {
     pub fn new(phred: u8) -> FQCount {
-        FQCount {
-            phred: phred,
-            ..Default::default()
-        }
+        FQCount { phred: phred, ..Default::default() }
     }
 
     fn calc_reads(&self) -> f64 {
