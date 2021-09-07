@@ -1,7 +1,7 @@
 use std::process;
 
 use chrono::prelude::*;
-use clap::{App, Arg, Values};
+use clap::{App, Arg}; // Values
 
 use fastq_count_rs::read_input;
 mod fq_count;
@@ -16,7 +16,8 @@ const AUTHORS: &'static str = env!("CARGO_PKG_AUTHORS");
 
 #[derive(Debug)]
 struct Config<'a> {
-    inputs: Vec<&'a str>,
+    // inputs: Vec<&'a str>,
+    inputs: Vec<String>,
     phred: u8,
     output: &'a str,
     json_fmt: bool,
@@ -71,7 +72,9 @@ fn main() {
 
     // let inputs = args.values_of("inputs");
     let config = Config {
-        inputs: matches.values_of("inputs").map(Values::collect).unwrap_or_else(|| vec![]),
+        // <&str>
+        // inputs: matches.values_of("inputs").map(Values::collect).unwrap_or_else(|| vec![]),
+        inputs: matches.values_of_lossy("inputs").unwrap(),
         phred: matches.value_of("phred").unwrap().parse::<u8>().unwrap(),
         output: matches.value_of("output").unwrap(),
         json_fmt: matches.is_present("json"),
