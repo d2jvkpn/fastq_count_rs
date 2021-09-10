@@ -1,12 +1,19 @@
 use std::io::prelude::*;
-use std::{error, fs, io};
+use std::{error, fs, io, time};
 
+use chrono::prelude::*;
 use clap::{App, Arg}; // Values
 use flate2::bufread::GzDecoder;
+
+mod count;
+use count::{base, count2};
 
 // https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-sets-for-crates
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 const AUTHORS: &'static str = env!("CARGO_PKG_AUTHORS");
+
+#[macro_use]
+extern crate serde_derive;
 
 #[derive(Debug)]
 pub struct Config {
@@ -98,4 +105,48 @@ pub fn get_args() -> Result<Config, Box<dyn error::Error>> {
     };
 
     Ok(config)
+}
+
+pub fn run(config: Config) -> Result<(), Box<dyn error::Error>> {
+    // let config = get_args()?;
+    if config.debug {
+        dbg!(&config);
+    }
+
+    //##
+    let mut fqc = base::FQCount::new(config.phred);
+    let start: DateTime<Local> = Local::now();
+
+    for input in config.inputs {
+        let local: DateTime<Local> = Local::now();
+
+        eprintln!(
+            "{} fastq count read input: \"{}\"",
+            local.to_rfc3339_opts(SecondsFormat::Millis, true),
+            input
+        );
+
+        match read_input(&input) {
+            Ok(buf_read) => match count2::read(buf_read, config.phred) {
+                Ok(y) => fqc.add(y),
+                Err(err) => return Err(From::from(format!("count2::read {}: {:?}", input, err))),
+                //
+            },
+            Err(err) => return Err(From::from(format!("read_input {}: {:?}", input, err))),
+        };
+
+        let log_elapsed = || {
+            let end: DateTime<Local> = Local::now();
+            eprintln!(
+                "{} fastq count elapsed: {:?}",
+                end.to_rfc3339_opts(SecondsFormat::Millis, true),
+                end.signed_duration_since(start).to_std().unwrap_or(time::Duration::new(0, 0)),
+            );
+        };
+
+        log_elapsed();
+        fqc.output(&config.output, config.json_fmt)?;
+    }
+
+    Ok(())
 }
