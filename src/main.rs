@@ -3,9 +3,9 @@ use std::process;
 use chrono::prelude::*;
 use clap::{App, Arg}; // Values
 
-use fastq_count_rs::read_input;
-mod fq_count;
-use fq_count::{base, count2};
+use fastq_count::read_input;
+mod count;
+use count::{base, count2};
 
 #[macro_use]
 extern crate serde_derive;
