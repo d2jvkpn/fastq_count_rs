@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::io::prelude::*;
 use std::{fs, io};
 
@@ -6,7 +8,6 @@ use flate2::bufread::GzDecoder;
 use super::base;
 
 impl base::FQCount {
-    #[allow(dead_code)]
     fn countb1(&mut self, line: &str) {
         self.reads += 1;
         self.bases += line.len() as u64;
@@ -20,7 +21,6 @@ impl base::FQCount {
         }
     }
 
-    #[allow(dead_code)]
     fn countq1(&mut self, line: &str) {
         for v in line.as_bytes() {
             let q = *v as u8 - self.phred;
@@ -36,7 +36,6 @@ impl base::FQCount {
         }
     }
 
-    #[allow(dead_code)]
     fn read<R: BufRead>(&mut self, reader: R) -> Option<io::Error> {
         for (num, line) in reader.lines().enumerate() {
             let line = match line {
@@ -55,7 +54,6 @@ impl base::FQCount {
     }
 }
 
-#[allow(dead_code)]
 pub fn read(input: &str, fqc: &mut base::FQCount) -> Option<io::Error> {
     // Option<Box<dyn std::error::Error>>
     eprintln!(">>> fastq count reading \"{}\"", input);
