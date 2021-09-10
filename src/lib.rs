@@ -17,7 +17,6 @@ extern crate serde_derive;
 
 #[derive(Debug)]
 pub struct Config {
-    // inputs: Vec<&'a str>,
     pub inputs: Vec<String>,
     pub phred: u8,
     pub output: String,
@@ -108,12 +107,10 @@ pub fn get_args() -> Result<Config, Box<dyn error::Error>> {
 }
 
 pub fn run(config: Config) -> Result<(), Box<dyn error::Error>> {
-    // let config = get_args()?;
     if config.debug {
         dbg!(&config);
     }
 
-    //##
     let mut fqc = base::FQCount::new(config.phred);
     let start: DateTime<Local> = Local::now();
 
@@ -130,7 +127,6 @@ pub fn run(config: Config) -> Result<(), Box<dyn error::Error>> {
             Ok(buf_read) => match count2::read(buf_read, config.phred) {
                 Ok(y) => fqc.add(y),
                 Err(err) => return Err(From::from(format!("count2::read {}: {:?}", input, err))),
-                //
             },
             Err(err) => return Err(From::from(format!("read_input {}: {:?}", input, err))),
         };
