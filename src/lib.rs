@@ -38,9 +38,14 @@ pub fn read_input(input: &str) -> Result<Box<dyn BufRead>, Box<dyn error::Error>
     //
     // return Ok(Box::new(reader));
 
-    match input {
-        input if input.ends_with(".gz") => Ok(Box::new(io::BufReader::new(GzDecoder::new(reader)))),
-        _ => Ok(Box::new(reader)),
+    // match input {
+    //     input if input.ends_with(".gz") => Ok(Box::new(io::BufReader::new(GzDecoder::new(reader)))),
+    //     _ => Ok(Box::new(reader)),
+    // }
+    if input.ends_with(".gz") {
+        Ok(Box::new(io::BufReader::new(GzDecoder::new(reader))))
+    } else {
+        Ok(Box::new(reader))
     }
 }
 
@@ -122,11 +127,12 @@ pub fn run(config: Config) -> Result<(), Box<dyn error::Error>> {
         );
 
         match read_input(&input) {
+            // Box<dyn BufRead>
             Ok(buf_read) => match count2::read(buf_read, config.phred) {
-                Ok(data) => fqc.add(data),
-                Err(err) => return Err(From::from(format!("count2::read {}: {:?}", input, err))),
+                Ok(v) => fqc.add(v),
+                Err(e) => return Err(From::from(format!("count2::read {}: {:?}", input, e))),
             },
-            Err(err) => return Err(From::from(format!("read_input {}: {:?}", input, err))),
+            Err(e) => return Err(From::from(format!("read_input {}: {:?}", input, e))),
         };
 
         let log_elapsed = || {

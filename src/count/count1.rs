@@ -39,8 +39,8 @@ impl base::FQCount {
     fn read<R: BufRead>(&mut self, reader: R) -> Option<io::Error> {
         for (num, result) in reader.lines().enumerate() {
             let line = match result {
-                Ok(value) => value,
-                Err(err) => return Some(err),
+                Ok(v) => v,
+                Err(e) => return Some(e),
             };
 
             match num % 4 {
@@ -66,8 +66,8 @@ pub fn read(input: &str, fqc: &mut base::FQCount) -> Option<io::Error> {
     }
 
     let file = match fs::File::open(input) {
-        Ok(value) => value,
-        Err(err) => return Some(err),
+        Ok(v) => v,
+        Err(e) => return Some(e),
     };
 
     if input.ends_with(".gz") {

@@ -56,8 +56,8 @@ pub fn read(reader: Box<dyn BufRead>, phred: u8) -> Result<base::FQCount, Box<dy
 
     for (num, result) in reader.lines().enumerate() {
         let line = match result {
-            Ok(value) => value,
-            Err(err) => return Err(Box::new(err)),
+            Ok(v) => v,
+            Err(e) => return Err(Box::new(e)),
         };
 
         match num % 4 {
