@@ -1,12 +1,12 @@
 use std::io::prelude::*;
 use std::{error, fs, io, time};
 
+mod count;
+use count::{base, count2};
+
 use chrono::prelude::*;
 use clap::{App, Arg}; // Values
 use flate2::bufread::GzDecoder;
-
-mod count;
-use count::{base, count2};
 
 // https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-sets-for-crates
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
@@ -123,7 +123,7 @@ pub fn run(config: Config) -> Result<(), Box<dyn error::Error>> {
 
         match read_input(&input) {
             Ok(buf_read) => match count2::read(buf_read, config.phred) {
-                Ok(y) => fqc.add(y),
+                Ok(data) => fqc.add(data),
                 Err(err) => return Err(From::from(format!("count2::read {}: {:?}", input, err))),
             },
             Err(err) => return Err(From::from(format!("read_input {}: {:?}", input, err))),
