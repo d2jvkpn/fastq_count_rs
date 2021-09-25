@@ -8,10 +8,6 @@ use chrono::prelude::*;
 use clap::{App, Arg}; // Values
 use flate2::bufread::GzDecoder;
 
-// https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-sets-for-crates
-const VERSION: &'static str = env!("CARGO_PKG_VERSION");
-const AUTHORS: &'static str = env!("CARGO_PKG_AUTHORS");
-
 #[macro_use]
 extern crate serde_derive;
 
@@ -50,10 +46,11 @@ pub fn read_input(input: &str) -> Result<Box<dyn BufRead>, Box<dyn error::Error>
 }
 
 pub fn get_args() -> Result<Config, Box<dyn error::Error>> {
+    // https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-sets-for-crates
     let matches = App::new("fastq(https://en.wikipedia.org/wiki/FASTQ_format) count in rust")
         .about("count fastq reads, bases, N Bases, Q20, Q30, GC")
-        .author(AUTHORS)
-        .version(VERSION)
+        .author(env!("CARGO_PKG_AUTHORS"))
+        .version(env!("CARGO_PKG_VERSION"))
         .set_term_width(100)
         .arg(
             Arg::with_name("inputs")
