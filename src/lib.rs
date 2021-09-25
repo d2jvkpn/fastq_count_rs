@@ -20,7 +20,7 @@ pub struct Config {
     pub debug: bool,
 }
 
-pub fn read_input(input: &str) -> Result<Box<dyn BufRead>, Box<dyn error::Error>> {
+pub fn read_input(input: &str) -> Result<Box<dyn BufRead>, io::Error> {
     if input == "-" {
         return Ok(Box::new(io::BufReader::new(io::stdin())));
     }
