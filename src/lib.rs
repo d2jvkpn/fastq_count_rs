@@ -135,15 +135,15 @@ pub fn run(config: Config) -> Result<(), Box<dyn error::Error>> {
         let log_elapsed = || {
             let end: DateTime<Local> = Local::now();
             eprintln!(
-                "{} fastq count elapsed: {:?}",
+                "{} ~~~ elapsed: {:?}",
                 end.to_rfc3339_opts(SecondsFormat::Millis, true),
                 end.signed_duration_since(start).to_std().unwrap_or(time::Duration::new(0, 0)),
             );
         };
 
         log_elapsed();
-        fqc.output(&config.output, config.json_fmt)?;
     }
 
+    fqc.output(&config.output, config.json_fmt)?;
     Ok(())
 }
