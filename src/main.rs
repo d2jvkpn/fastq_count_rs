@@ -1,6 +1,6 @@
 use std::process;
 
-use fastq_count::{get_args, run};
+use fastq_count::{get_args, run_v2}; // run_v1
 
 fn main() {
     // if let Err(err) = get_args().and_then(run) {
@@ -16,8 +16,8 @@ fn main() {
         }
     };
 
-    if let Err(err) = run(config) {
-        eprintln!("run: {}", err);
+    if let Err(err) = run_v2(config) {
+        eprintln!("run_v2: {}", err);
         process::exit(1);
     }
 }

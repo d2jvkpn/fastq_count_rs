@@ -2,7 +2,7 @@ use std::io::prelude::*;
 use std::{error, fs, io, time};
 
 mod count;
-use count::{base, count2};
+use count::{base, count1, count2};
 
 use chrono::prelude::*;
 use clap::{App, Arg}; // Values
@@ -103,14 +103,48 @@ pub fn get_args() -> Result<Config, Box<dyn error::Error>> {
         debug: matches.is_present("debug"),
     };
 
-    Ok(config)
-}
-
-pub fn run(config: Config) -> Result<(), Box<dyn error::Error>> {
     if config.debug {
         dbg!(&config);
     }
 
+    Ok(config)
+}
+
+pub fn run_v1(config: Config) -> Result<(), Box<dyn error::Error>> {
+    let mut fqc = base::FQCount::new(config.phred);
+    let start: DateTime<Local> = Local::now();
+
+    for input in config.inputs {
+        let local: DateTime<Local> = Local::now();
+
+        eprintln!(
+            "{} fastq count read input: \"{}\"",
+            local.to_rfc3339_opts(SecondsFormat::Millis, true),
+            input
+        );
+
+        let mut result = base::FQCount::new(config.phred);
+        if let Some(e) = count1::read(&input, &mut result) {
+            return Err(From::from(format!("read_input {}: {:?}", input, e)));
+        }
+
+        let log_elapsed = || {
+            let end: DateTime<Local> = Local::now();
+            eprintln!(
+                "{} ~~~ elapsed: {:?}",
+                end.to_rfc3339_opts(SecondsFormat::Millis, true),
+                end.signed_duration_since(start).to_std().unwrap_or(time::Duration::new(0, 0)),
+            );
+        };
+
+        log_elapsed();
+    }
+
+    fqc.output(&config.output, config.json_fmt)?;
+    return Ok(());
+}
+
+pub fn run_v2(config: Config) -> Result<(), Box<dyn error::Error>> {
     let mut fqc = base::FQCount::new(config.phred);
     let start: DateTime<Local> = Local::now();
 

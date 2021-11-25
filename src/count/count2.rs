@@ -6,7 +6,7 @@ use std::{error, io, sync, thread};
 use super::base;
 
 impl base::FQCount {
-    fn countb(&mut self, line: String) {
+    fn countb2(&mut self, line: String) {
         self.reads += 1;
         self.bases += line.len() as u64;
 
@@ -19,7 +19,7 @@ impl base::FQCount {
         }
     }
 
-    fn countq(&mut self, line: String) {
+    fn countq2(&mut self, line: String) {
         for v in line.as_bytes() {
             let q = *v as u8 - self.phred; // !!?? v < self.phred
 
@@ -41,7 +41,7 @@ pub fn read(reader: Box<dyn BufRead>, phred: u8) -> Result<base::FQCount, Box<dy
     let th1 = thread::spawn(move || -> Result<base::FQCount, io::Error> {
         let mut fqc = base::FQCount::new(phred);
         for line in rx1 {
-            fqc.countb(line);
+            fqc.countb2(line);
         }
         return Ok(fqc);
     });
@@ -49,7 +49,7 @@ pub fn read(reader: Box<dyn BufRead>, phred: u8) -> Result<base::FQCount, Box<dy
     let th2 = thread::spawn(move || -> Result<base::FQCount, io::Error> {
         let mut fqc = base::FQCount::new(phred);
         for line in rx2 {
-            fqc.countq(line);
+            fqc.countq2(line);
         }
         return Ok(fqc);
     });
