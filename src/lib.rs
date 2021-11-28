@@ -92,12 +92,17 @@ pub fn get_args() -> Result<Config, Box<dyn error::Error>> {
         .get_matches();
 
     // let inputs = args.values_of("inputs");
+    let phred = match matches.value_of("phred").unwrap_or("33").parse::<u8>() {
+        Ok(v) => v,
+        Err(e) => return Err(From::from(format!("parse arg --phred error: {:?}", e))),
+    };
+
     let config = Config {
         // <&str>
         // inputs: matches.values_of("inputs").map(Values::collect).unwrap_or_else(|| vec![]),
         // inputs: matches.values_of_lossy("inputs").into_iter().flat_map(|x| x).collect(),
         inputs: matches.values_of_lossy("inputs").unwrap_or(vec![]),
-        phred: matches.value_of("phred").unwrap_or("33").parse::<u8>()?,
+        phred,
         output: matches.value_of("output").unwrap_or("").to_string(),
         json_fmt: matches.is_present("json"),
         debug: matches.is_present("debug"),
