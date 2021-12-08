@@ -47,8 +47,8 @@ pub fn read_input(input: &str) -> Result<Box<dyn BufRead>, io::Error> {
 
 pub fn get_args() -> Result<Config, Box<dyn error::Error>> {
     // https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-sets-for-crates
-    let matches = App::new("fastq(https://en.wikipedia.org/wiki/FASTQ_format) count in rust")
-        .about("count fastq reads, bases, N Bases, Q20, Q30, GC")
+    let matches = App::new(env!("CARGO_PKG_HOMEPAGE"))
+        .about(env!("CARGO_PKG_DESCRIPTION"))
         .author(env!("CARGO_PKG_AUTHORS"))
         .version(env!("CARGO_PKG_VERSION"))
         .set_term_width(100)
