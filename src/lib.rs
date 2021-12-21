@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate serde_derive;
+
 use std::io::prelude::*;
 use std::{error, fs, io, time};
 
@@ -7,9 +10,6 @@ use count::{base, count1, count2};
 use chrono::prelude::*;
 use clap::{App, Arg}; // Values
 use flate2::bufread::GzDecoder;
-
-#[macro_use]
-extern crate serde_derive;
 
 #[derive(Debug)]
 pub struct Config {
@@ -28,16 +28,6 @@ pub fn read_input(input: &str) -> Result<Box<dyn BufRead>, io::Error> {
     let file = fs::File::open(input)?;
     let reader = io::BufReader::new(file);
 
-    // if input.ends_with(".gz") {
-    //     return Ok(Box::new(io::BufReader::new(GzDecoder::new(reader))));
-    // }
-    //
-    // return Ok(Box::new(reader));
-
-    // match input {
-    //     input if input.ends_with(".gz") => Ok(Box::new(io::BufReader::new(GzDecoder::new(reader)))),
-    //     _ => Ok(Box::new(reader)),
-    // }
     if input.ends_with(".gz") {
         Ok(Box::new(io::BufReader::new(GzDecoder::new(reader))))
     } else {
@@ -46,7 +36,6 @@ pub fn read_input(input: &str) -> Result<Box<dyn BufRead>, io::Error> {
 }
 
 pub fn get_args() -> Result<Config, Box<dyn error::Error>> {
-    // https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-sets-for-crates
     let matches = App::new(env!("CARGO_PKG_HOMEPAGE"))
         .about(env!("CARGO_PKG_DESCRIPTION"))
         .author(env!("CARGO_PKG_AUTHORS"))
@@ -91,11 +80,11 @@ pub fn get_args() -> Result<Config, Box<dyn error::Error>> {
         )
         .get_matches();
 
-    // let inputs = args.values_of("inputs");
-    let phred = match matches.value_of("phred").unwrap_or("33").parse::<u8>() {
-        Ok(v) => v,
-        Err(e) => return Err(From::from(format!("parse arg --phred error: {:?}", e))),
-    };
+    let phred = matches
+        .value_of("phred")
+        .unwrap_or("33")
+        .parse::<u8>()
+        .map_err(|e| format!("parse arg --phred error: {:?}", e))?;
 
     let config = Config {
         // <&str>
@@ -162,14 +151,11 @@ pub fn run_v2(config: Config) -> Result<(), Box<dyn error::Error>> {
             input
         );
 
-        match read_input(&input) {
-            // Box<dyn BufRead>
-            Ok(buf_read) => match count2::read(buf_read, config.phred) {
-                Ok(v) => fqc.add(v),
-                Err(e) => return Err(From::from(format!("count2::read {}: {:?}", input, e))),
-            },
-            Err(e) => return Err(From::from(format!("read_input {}: {:?}", input, e))),
-        };
+        let reader = read_input(&input).map_err(|e| format!("read_input {}: {:?}", input, e))?;
+        let v = count2::read(reader, config.phred)
+            .map_err(|e| format!("count2::read {}: {:?}", input, e))?;
+
+        fqc.add(v);
 
         let log_elapsed = || {
             let end: DateTime<Local> = Local::now();

@@ -38,10 +38,7 @@ impl base::FQCount {
 
     fn read<R: BufRead>(&mut self, reader: R) -> Option<io::Error> {
         for (num, result) in reader.lines().enumerate() {
-            let line = match result {
-                Ok(v) => v,
-                Err(e) => return Some(e),
-            };
+            let line = result.ok()?;
 
             match num % 4 {
                 1 => self.countb1(&line),
@@ -55,7 +52,6 @@ impl base::FQCount {
 }
 
 pub fn read(input: &str, fqc: &mut base::FQCount) -> Option<io::Error> {
-    // Option<Box<dyn std::error::Error>>
     eprintln!(">>> fastq count reading \"{}\"", input);
 
     if input == "-" {
@@ -65,10 +61,7 @@ pub fn read(input: &str, fqc: &mut base::FQCount) -> Option<io::Error> {
         return None;
     }
 
-    let file = match fs::File::open(input) {
-        Ok(v) => v,
-        Err(e) => return Some(e),
-    };
+    let file = fs::File::open(input).ok()?;
 
     if input.ends_with(".gz") {
         let reader = io::BufReader::new(GzDecoder::new(io::BufReader::new(file)));
