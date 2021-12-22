@@ -32,6 +32,11 @@ impl base::FQCount {
             }
         }
     }
+
+    pub fn count(&mut self, bl: String, ql: String) {
+        self.countb2(bl);
+        self.countq2(ql);
+    }
 }
 
 pub fn read(reader: Box<dyn BufRead>, phred: u8) -> Result<base::FQCount, Box<dyn error::Error>> {
