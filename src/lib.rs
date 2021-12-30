@@ -1,10 +1,11 @@
 #[macro_use]
 extern crate serde_derive;
 
+mod count;
+
 use std::io::prelude::*;
 use std::{error, fs, io, time};
 
-mod count;
 use count::{base, count1, count2, count3};
 
 use chrono::prelude::*;
