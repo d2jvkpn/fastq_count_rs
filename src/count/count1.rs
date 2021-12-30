@@ -23,7 +23,10 @@ impl base::FQCount {
 
     fn countq1(&mut self, line: &str) {
         for v in line.as_bytes() {
-            let q = *v as u8 - self.phred;
+            let q = match *v as u8 {
+                q if q >= self.phred => q - self.phred,
+                _ => 0,
+            };
 
             if q < 20 {
                 continue;
