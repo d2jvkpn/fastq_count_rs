@@ -6,7 +6,7 @@ use std::{error, io, sync, thread};
 use super::base;
 
 impl base::FQCount {
-    fn countb2(&mut self, line: String) {
+    pub fn countb2(&mut self, line: String) {
         self.reads += 1;
         self.bases += line.len() as u64;
 
@@ -19,7 +19,7 @@ impl base::FQCount {
         }
     }
 
-    fn countq2(&mut self, line: String) {
+    pub fn countq2(&mut self, line: String) {
         for v in line.as_bytes() {
             let q = *v as u8 - self.phred; // !!?? v < self.phred
 

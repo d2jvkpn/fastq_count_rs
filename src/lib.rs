@@ -5,7 +5,7 @@ use std::io::prelude::*;
 use std::{error, fs, io, time};
 
 mod count;
-use count::{base, count1, count2};
+use count::{base, count1, count2, count3};
 
 use chrono::prelude::*;
 use clap::{App, Arg}; // Values
@@ -18,6 +18,7 @@ pub struct Config {
     pub output: String,
     pub json_fmt: bool,
     pub debug: bool,
+    pub run: String,
 }
 
 pub fn read_input(input: &str) -> Result<Box<dyn BufRead>, io::Error> {
@@ -76,7 +77,14 @@ pub fn get_args() -> Result<Config, Box<dyn error::Error>> {
                 .long("debug")
                 .takes_value(false)
                 .required(false)
-                .help("run in debug mode"),
+                .help("in debug mode"),
+        )
+        .arg(
+            Arg::with_name("run")
+                .long("run")
+                .takes_value(true)
+                .possible_values(&["v1", "v2"])
+                .help("run version"),
         )
         .get_matches();
 
@@ -95,6 +103,7 @@ pub fn get_args() -> Result<Config, Box<dyn error::Error>> {
         output: matches.value_of("output").unwrap_or("").to_string(),
         json_fmt: matches.is_present("json"),
         debug: matches.is_present("debug"),
+        run: matches.value_of("output").unwrap_or("v2").to_string(),
     };
 
     if config.debug {
@@ -171,4 +180,47 @@ pub fn run_v2(config: Config) -> Result<(), Box<dyn error::Error>> {
 
     fqc.output(&config.output, config.json_fmt)?;
     Ok(())
+}
+
+// bad performance with improper async
+pub fn run_v3(config: Config) -> Result<(), Box<dyn error::Error>> {
+    let mut fqc = base::FQCount::new(config.phred);
+    let start: DateTime<Local> = Local::now();
+
+    for input in config.inputs {
+        let local: DateTime<Local> = Local::now();
+
+        eprintln!(
+            "{} fastq count read input: \"{}\"",
+            local.to_rfc3339_opts(SecondsFormat::Millis, true),
+            input
+        );
+
+        let v = count3::process(&input, config.phred)
+            .map_err(|e| format!("count3::process {}: {:?}", input, e))?;
+
+        fqc.add(v);
+
+        let log_elapsed = || {
+            let end: DateTime<Local> = Local::now();
+            eprintln!(
+                "{} ~~~ elapsed: {:?}",
+                end.to_rfc3339_opts(SecondsFormat::Millis, true),
+                end.signed_duration_since(start).to_std().unwrap_or(time::Duration::new(0, 0)),
+            );
+        };
+
+        log_elapsed();
+    }
+
+    fqc.output(&config.output, config.json_fmt)?;
+    Ok(())
+}
+
+pub fn run(config: Config) -> Result<(), Box<dyn error::Error>> {
+    match &config.run[..] {
+        "v1" => run_v1(config),
+        "v2" => run_v2(config),
+        _ => Err("unkonwm run")?,
+    }
 }
