@@ -1,5 +1,7 @@
-use std::io::prelude::*;
-use std::{fmt, fs, io};
+use std::{
+    fmt, fs,
+    io::{self, prelude::*},
+};
 
 #[derive(Default, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

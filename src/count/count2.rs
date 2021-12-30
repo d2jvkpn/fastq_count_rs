@@ -1,7 +1,8 @@
-#![allow(dead_code)]
-
-use std::io::prelude::*;
-use std::{error, io, sync, thread};
+use std::{
+    error,
+    io::{self, prelude::*},
+    sync, thread,
+};
 
 use super::base;
 
@@ -33,6 +34,7 @@ impl base::FQCount {
         }
     }
 
+    #[allow(dead_code)]
     pub fn count(&mut self, bl: String, ql: String) {
         self.countb2(bl);
         self.countq2(ql);

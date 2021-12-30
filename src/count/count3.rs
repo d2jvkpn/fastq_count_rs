@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use std::{error, sync::mpsc, thread};
 
 use super::base;

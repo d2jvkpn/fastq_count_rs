@@ -3,8 +3,11 @@ extern crate serde_derive;
 
 mod count;
 
-use std::io::prelude::*;
-use std::{error, fs, io, time};
+use std::{
+    error, fs,
+    io::{self, prelude::*},
+    time,
+};
 
 use count::{base, count1, count2, count3};
 

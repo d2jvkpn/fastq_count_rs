@@ -1,11 +1,11 @@
-#![allow(dead_code)]
-
-use std::io::prelude::*;
-use std::{fs, io};
-
-use flate2::bufread::GzDecoder;
+use std::{
+    fs,
+    io::{self, prelude::*},
+};
 
 use super::base;
+
+use flate2::bufread::GzDecoder;
 
 impl base::FQCount {
     fn countb1(&mut self, line: &str) {
