@@ -9,7 +9,9 @@ use async_std::{
     task,
 };
 
-pub fn process(input: &str, phred: u8) -> Result<base::FQCount, Box<dyn error::Error>> {
+type Res<T> = Result<T, Box<dyn error::Error>>;
+
+pub fn process(input: &str, phred: u8) -> Res<base::FQCount> {
     let (tx1, rx1) = mpsc::channel();
     let (tx2, rx2) = mpsc::channel();
 
@@ -39,19 +41,15 @@ pub fn process(input: &str, phred: u8) -> Result<base::FQCount, Box<dyn error::E
 }
 
 // read fastq input only
-async fn read_input(
-    input: &str,
-    tx1: mpsc::Sender<String>,
-    tx2: mpsc::Sender<String>,
-) -> Result<(), Box<dyn error::Error>> {
+async fn read_input(input: &str, tx1: mpsc::Sender<String>, tx2: mpsc::Sender<String>) -> Res<()> {
     let file = File::open(input).await?;
     let reader = BufReader::new(file);
     let mut lines = reader.lines();
 
     let mut num = 0;
-    while let Some(line) = lines.next().await {
+    while let Some(line_result) = lines.next().await {
         num += 1;
-        let line = line?;
+        let line = line_result?;
 
         match num % 4 {
             1 => tx1.send(line)?,
