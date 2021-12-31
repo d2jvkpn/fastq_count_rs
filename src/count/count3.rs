@@ -31,7 +31,7 @@ pub fn process(input: &str, phred: u8) -> Res<base::FQCount> {
         return Ok(fqc);
     });
 
-    task::block_on(read_input(input, tx1, tx2))?;
+    task::block_on(read_input(input, tx1.clone(), tx2.clone()))?;
 
     let mut fqc = th1.join().unwrap()?;
     let fqc2 = th2.join().unwrap()?;

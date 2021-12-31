@@ -225,6 +225,7 @@ pub fn run(config: Config) -> Result<(), Box<dyn error::Error>> {
     match &config.run[..] {
         "v1" => run_v1(config),
         "v2" => run_v2(config),
+        "v3" => run_v3(config),
         _ => Err("unkonwm run")?,
     }
 }
