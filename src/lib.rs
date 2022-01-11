@@ -107,7 +107,7 @@ pub fn get_args() -> Result<Config, Box<dyn error::Error>> {
         output: matches.value_of("output").unwrap_or("").to_string(),
         json_fmt: matches.is_present("json"),
         debug: matches.is_present("debug"),
-        run: matches.value_of("output").unwrap_or("v2").to_string(),
+        run: matches.value_of("run").unwrap_or("v2").to_string(),
     };
 
     if config.debug {
