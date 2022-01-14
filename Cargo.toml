@@ -12,7 +12,6 @@ homepage = "fastq(https://en.wikipedia.org/wiki/FASTQ_format) count in rust"
 assert_cmd = "2.0"
 
 [dependencies]
-async-std = "1.10.0"
 chrono = "0.4"
 clap = "2.33"
 flate2 = "1.0"
