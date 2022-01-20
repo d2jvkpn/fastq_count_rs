@@ -1,8 +1,5 @@
-use std::{
-    error,
-    io::{self, prelude::*},
-    sync, thread,
-};
+use std::io::{self, prelude::*};
+use std::{error, sync, thread};
 
 use super::base;
 
