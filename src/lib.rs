@@ -1,5 +1,5 @@
-use std::io::prelude::*;
-use std::{error, fs, io, time};
+use std::io::{self, prelude::*};
+use std::{error, fs, time};
 
 mod count;
 use count::{base, count2};

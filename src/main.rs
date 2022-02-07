@@ -3,7 +3,7 @@ use std::process;
 use fastq_count::{get_args, run};
 
 fn main() {
-    // if let Err(err) = get_args().and_then(run) {
+    // if let Err(err) = get_args().and_then(run) { // "an_then" is just like "cmd1 && cmd2" in shell
     //     eprintln!("{}", err);
     //     process::exit(1);
     // }

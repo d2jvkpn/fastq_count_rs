@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
-use std::io::prelude::*;
-use std::{fs, io};
+use std::fs;
+use std::io::{self, prelude::*};
 
 use flate2::bufread::GzDecoder;
 

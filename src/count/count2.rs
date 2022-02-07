@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
-use std::io::prelude::*;
-use std::{error, io, sync, thread};
+use std::io::{self, prelude::*};
+use std::{error, sync, thread};
 
 use super::base;
 
