@@ -13,12 +13,12 @@ pub struct FQCount {
     pub q20: u64,   // Q20 number
     pub q30: u64,   // Q30 number
 
-    pub reads_mb: f64,
-    pub bases_gb: f64,
-    pub n_perc: f64,
-    pub gc_perc: f64,  // GC percentage
-    pub q20_perc: f64, // Q20 percentage
-    pub q30_perc: f64, // Q30 percentage
+    reads_mb: f64,
+    bases_gb: f64,
+    n_perc: f64,
+    gc_perc: f64,  // GC percentage
+    q20_perc: f64, // Q20 percentage
+    q30_perc: f64, // Q30 percentage
 }
 
 // basic
