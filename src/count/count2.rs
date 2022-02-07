@@ -23,7 +23,7 @@ impl base::FQCount {
         for v in line.as_bytes() {
             let q = match *v as u8 {
                 q if q >= self.phred => q - self.phred,
-                _ => 0,
+                _ => 0, // ignore unexpected value
             };
 
             if q < 20 {
