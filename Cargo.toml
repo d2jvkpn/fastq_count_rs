@@ -2,17 +2,19 @@
 name = "fastq_count"
 version = "0.8.0"
 authors = ["d2jvkpn"]
-edition = "2018"
+edition = "2021"
+description = "count fastq reads, bases, N Bases, Q20, Q30, GC"
+homepage = "fastq(https://en.wikipedia.org/wiki/FASTQ_format) count in rust"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dev-dependencies]
-assert_cmd = "1"
+assert_cmd = "2.0"
 
 [dependencies]
-clap = "2"
+chrono = "0.4"
+clap = "2.33"
 flate2 = "1.0"
 serde = "1.0"
-serde_json = "1.0"
 serde_derive = "1.0"
-chrono = "0.4"
+serde_json = "1.0"

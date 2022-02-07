@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate serde_derive;
+
 use std::io::{self, prelude::*};
 use std::{error, fs, time};
 
@@ -8,9 +11,6 @@ use chrono::prelude::*;
 use clap::{App, Arg}; // Values
 use flate2::bufread::GzDecoder;
 
-#[macro_use]
-extern crate serde_derive;
-
 #[derive(Debug)]
 pub struct Config {
     pub inputs: Vec<String>,
@@ -20,7 +20,7 @@ pub struct Config {
     pub debug: bool,
 }
 
-pub fn read_input(input: &str) -> Result<Box<dyn BufRead>, Box<dyn error::Error>> {
+pub fn read_input(input: &str) -> Result<Box<dyn BufRead>, io::Error> {
     if input == "-" {
         return Ok(Box::new(io::BufReader::new(io::stdin())));
     }
@@ -28,16 +28,6 @@ pub fn read_input(input: &str) -> Result<Box<dyn BufRead>, Box<dyn error::Error>
     let file = fs::File::open(input)?;
     let reader = io::BufReader::new(file);
 
-    // if input.ends_with(".gz") {
-    //     return Ok(Box::new(io::BufReader::new(GzDecoder::new(reader))));
-    // }
-    //
-    // return Ok(Box::new(reader));
-
-    // match input {
-    //     input if input.ends_with(".gz") => Ok(Box::new(io::BufReader::new(GzDecoder::new(reader)))),
-    //     _ => Ok(Box::new(reader)),
-    // }
     if input.ends_with(".gz") {
         Ok(Box::new(io::BufReader::new(GzDecoder::new(reader))))
     } else {
@@ -46,9 +36,8 @@ pub fn read_input(input: &str) -> Result<Box<dyn BufRead>, Box<dyn error::Error>
 }
 
 pub fn get_args() -> Result<Config, Box<dyn error::Error>> {
-    // https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-sets-for-crates
-    let matches = App::new("fastq(https://en.wikipedia.org/wiki/FASTQ_format) count in rust")
-        .about("count fastq reads, bases, N Bases, Q20, Q30, GC")
+    let matches = App::new(env!("CARGO_PKG_HOMEPAGE"))
+        .about(env!("CARGO_PKG_DESCRIPTION"))
         .author(env!("CARGO_PKG_AUTHORS"))
         .version(env!("CARGO_PKG_VERSION"))
         .set_term_width(100)
@@ -87,30 +76,35 @@ pub fn get_args() -> Result<Config, Box<dyn error::Error>> {
                 .long("debug")
                 .takes_value(false)
                 .required(false)
-                .help("run in debug mode"),
+                .help("in debug mode"),
         )
         .get_matches();
 
-    // let inputs = args.values_of("inputs");
+    let phred = matches
+        .value_of("phred")
+        .unwrap_or("33")
+        .parse::<u8>()
+        .map_err(|e| format!("parse arg --phred error: {:?}", e))?;
+
     let config = Config {
         // <&str>
         // inputs: matches.values_of("inputs").map(Values::collect).unwrap_or_else(|| vec![]),
         // inputs: matches.values_of_lossy("inputs").into_iter().flat_map(|x| x).collect(),
         inputs: matches.values_of_lossy("inputs").unwrap_or(vec![]),
-        phred: matches.value_of("phred").unwrap_or("33").parse::<u8>()?,
+        phred,
         output: matches.value_of("output").unwrap_or("").to_string(),
         json_fmt: matches.is_present("json"),
         debug: matches.is_present("debug"),
     };
 
-    Ok(config)
-}
-
-pub fn run(config: Config) -> Result<(), Box<dyn error::Error>> {
     if config.debug {
         dbg!(&config);
     }
 
+    Ok(config)
+}
+
+pub fn run(config: Config) -> Result<(), Box<dyn error::Error>> {
     let mut fqc = base::FQCount::new(config.phred);
     let start: DateTime<Local> = Local::now();
 
@@ -123,27 +117,24 @@ pub fn run(config: Config) -> Result<(), Box<dyn error::Error>> {
             input
         );
 
-        match read_input(&input) {
-            // Box<dyn BufRead>
-            Ok(buf_read) => match count2::read(buf_read, config.phred) {
-                Ok(v) => fqc.add(v),
-                Err(e) => return Err(From::from(format!("count2::read {}: {:?}", input, e))),
-            },
-            Err(e) => return Err(From::from(format!("read_input {}: {:?}", input, e))),
-        };
+        let reader = read_input(&input).map_err(|e| format!("read_input {}: {:?}", input, e))?;
+        let v = count2::read(reader, config.phred)
+            .map_err(|e| format!("count2::read {}: {:?}", input, e))?;
+
+        fqc.add(v);
 
         let log_elapsed = || {
             let end: DateTime<Local> = Local::now();
             eprintln!(
-                "{} fastq count elapsed: {:?}",
+                "{} ~~~ elapsed: {:?}",
                 end.to_rfc3339_opts(SecondsFormat::Millis, true),
                 end.signed_duration_since(start).to_std().unwrap_or(time::Duration::new(0, 0)),
             );
         };
 
         log_elapsed();
-        fqc.output(&config.output, config.json_fmt)?;
     }
 
+    fqc.output(&config.output, config.json_fmt)?;
     Ok(())
 }

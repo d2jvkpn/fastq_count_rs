@@ -6,7 +6,7 @@ use std::{error, sync, thread};
 use super::base;
 
 impl base::FQCount {
-    fn countb2(&mut self, line: String) {
+    pub fn countb2(&mut self, line: String) {
         self.reads += 1;
         self.bases += line.len() as u64;
 
@@ -19,9 +19,12 @@ impl base::FQCount {
         }
     }
 
-    fn countq2(&mut self, line: String) {
+    pub fn countq2(&mut self, line: String) {
         for v in line.as_bytes() {
-            let q = *v as u8 - self.phred; // !!?? v < self.phred
+            let q = match *v as u8 {
+                q if q >= self.phred => q - self.phred,
+                _ => 0,
+            };
 
             if q < 20 {
                 continue;
@@ -31,6 +34,12 @@ impl base::FQCount {
                 self.q30 += 1;
             }
         }
+    }
+
+    #[allow(dead_code)]
+    pub fn count(&mut self, bl: String, ql: String) {
+        self.countb2(bl);
+        self.countq2(ql);
     }
 }
 
@@ -55,10 +64,7 @@ pub fn read(reader: Box<dyn BufRead>, phred: u8) -> Result<base::FQCount, Box<dy
     });
 
     for (num, result) in reader.lines().enumerate() {
-        let line = match result {
-            Ok(v) => v,
-            Err(e) => return Err(Box::new(e)),
-        };
+        let line = result?;
 
         match num % 4 {
             1 => tx1.send(line)?,
