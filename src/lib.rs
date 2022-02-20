@@ -90,7 +90,7 @@ pub fn get_args() -> Result<Config, Box<dyn error::Error>> {
         // <&str>
         // inputs: matches.values_of("inputs").map(Values::collect).unwrap_or_else(|| vec![]),
         // inputs: matches.values_of_lossy("inputs").into_iter().flat_map(|x| x).collect(),
-        inputs: matches.values_of_lossy("inputs").unwrap_or(vec![]),
+        inputs: matches.values_of_lossy("inputs").unwrap_or_default(), // .unwrap_or(!vec[]),
         phred,
         output: matches.value_of("output").unwrap_or("").to_string(),
         json_fmt: matches.is_present("json"),

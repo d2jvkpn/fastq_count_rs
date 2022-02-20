@@ -87,7 +87,8 @@ impl FQCount {
 
     fn json(&mut self) -> String {
         self.percs();
-        serde_json::to_string(&self).unwrap_or(String::from(""))
+        serde_json::to_string(&self).unwrap_or_else(|_| String::from(""))
+        // .unwrap_or(String::from(""))
     }
 
     fn text(&mut self) -> String {
@@ -114,7 +115,7 @@ impl FQCount {
     pub fn output(&mut self, output: &str, json_fmt: bool) -> Result<(), io::Error> {
         let result = if json_fmt { self.json() } else { self.text() };
 
-        if output == "" {
+        if output.is_empty() { // output == ""
             println!("{}", result);
             return Ok(());
         }
