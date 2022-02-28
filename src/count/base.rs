@@ -1,5 +1,5 @@
 use std::io::{self, prelude::*};
-use std::{fmt, fs};
+use std::{fmt, fs, path};
 
 #[derive(Default, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -115,9 +115,14 @@ impl FQCount {
     pub fn output(&mut self, output: &str, json_fmt: bool) -> Result<(), io::Error> {
         let result = if json_fmt { self.json() } else { self.text() };
 
-        if output.is_empty() { // output == ""
+        if output.is_empty() {
+            // output == ""
             println!("{}", result);
             return Ok(());
+        }
+
+        if let Some(d) = path::Path::new(output).parent() {
+            fs::create_dir_all(d)?;
         }
 
         let mut file = fs::File::create(output)?;
